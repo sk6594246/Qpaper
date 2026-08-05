@@ -1,4 +1,5 @@
 import os
+import tempfile
 import streamlit as st
 from google import genai
 from fpdf import FPDF
@@ -23,7 +24,7 @@ with st.sidebar:
         st.success("API Key saved for session!")
     
     st.divider()
-    st.markdown("### 🏫 School Info")
+    st.markdown("### 🏫 School Info (One-time Setup)")
     school_name = st.text_input("School Name", "Global Public School")
     class_name = st.text_input("Class / Grade", "Grade 10 - Science")
 
@@ -76,9 +77,19 @@ def create_pdf_bytes(title, content):
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(0, 10, title, 0, 1, 'L')
     pdf.set_font("Arial", '', 10)
-    # Multi_cell handles text wrapping safely
     pdf.multi_cell(0, 6, content)
     return pdf.output(dest='S').encode('latin1')
+
+# Helper function to save uploaded file locally for Gemini API ingestion
+def save_uploaded_file(uploaded_file):
+    try:
+        suffix = os.path.splitext(uploaded_file.name)[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp_file:
+            tmp_file.write(uploaded_file.getvalue())
+            return tmp_file.name
+    except Exception as e:
+        st.error(f"Error handling file upload: {e}")
+        return None
 
 # --- GENERATION LOGIC ---
 if st.button("🚀 Generate Question Paper & Answer Sheet", type="primary"):
@@ -86,19 +97,24 @@ if st.button("🚀 Generate Question Paper & Answer Sheet", type="primary"):
         st.error("Please upload a source image or PDF document.")
     else:
         with st.spinner("Processing documents with Gemini and applying document grounding..."):
+            temp_source_path = None
+            temp_ref_path = None
             try:
-                # Upload files using GenAI Files API
-                uploaded_source = client.files.upload(file=primary_file)
+                # Save source file temporarily
+                temp_source_path = save_uploaded_file(primary_file)
+                uploaded_source = client.files.upload(file=temp_source_path)
                 contents_payload = [uploaded_source]
                 
+                # Save reference artifact temporarily if provided
                 if reference_artifact:
-                    uploaded_ref = client.files.upload(file=reference_artifact)
+                    temp_ref_path = save_uploaded_file(reference_artifact)
+                    uploaded_ref = client.files.upload(file=temp_ref_path)
                     contents_payload.append(uploaded_ref)
 
                 prompt_text = f"""
-                You are an expert academic examiner. 
+                You are an expert academic examiner representing {school_name} for {class_name}. 
                 Using strictly and exclusively the attached source document(s), generate two distinct sections:
-                1. QUESTION PAPER: Formulate well-structured examination questions based ONLY on the provided source text/images. Follow any formatting cues if a reference artifact was provided.
+                1. QUESTION PAPER: Formulate well-structured examination questions based ONLY on the provided source text/images. Follow formatting cues if a reference artifact was provided.
                 2. ANSWER SHEET: Provide clear, accurate model answers for every question generated in the question paper.
                 
                 Additional instructions from user: {instructions}
@@ -112,7 +128,7 @@ if st.button("🚀 Generate Question Paper & Answer Sheet", type="primary"):
                 """
                 contents_payload.append(prompt_text)
 
-                # Call Gemini 2.5 Flash model
+                # Call Gemini Flash model
                 response = client.models.generate_content(
                     model='gemini-2.5-flash',
                     contents=contents_payload
@@ -145,42 +161,9 @@ if st.button("🚀 Generate Question Paper & Answer Sheet", type="primary"):
 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
-                === ANSWER SHEET ===
-                [Insert Answer Sheet Content Here]
-                """
-                contents_payload.append(prompt_text)
-
-                # Call Gemini 2.5 Flash model
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=contents_payload
-                )
-                
-                full_text = response.text
-                
-                # Split output into Question Paper and Answer Sheet
-                if "=== ANSWER SHEET ===" in full_text:
-                    qp_part, ans_part = full_text.split("=== ANSWER SHEET ===", 1)
-                    qp_content = qp_part.replace("=== QUESTION PAPER ===", "").strip()
-                    ans_content = ans_part.strip()
-                else:
-                    qp_content = full_text
-                    ans_content = "Answer sheet could not be automatically separated. Review raw output."
-
-                st.success("Generation Complete!")
-
-                tab1, tab2 = st.tabs(["📋 Question Paper", "✅ Answer Sheet"])
-                
-                with tab1:
-                    st.markdown(qp_content)
-                    qp_bytes = create_pdf_bytes(f"Question Paper - {class_name}", qp_content)
-                    st.download_button("Download Question Paper PDF", qp_bytes, file_name="Question_Paper.pdf", mime="application/pdf")
-
-                with tab2:
-                    st.markdown(ans_content)
-                    ans_bytes = create_pdf_bytes(f"Answer Sheet - {class_name}", ans_content)
-                    st.download_button("Download Answer Sheet PDF", ans_bytes, file_name="Answer_Sheet.pdf", mime="application/pdf")
-
-            except Exception as e:
-                st.error(f"An error occurred: {e}")
-              
+            finally:
+                # Clean up temporary files
+                if temp_source_path and os.path.exists(temp_source_path):
+                    os.remove(temp_source_path)
+                if temp_ref_path and os.path.exists(temp_ref_path):
+                    os.remove(temp_ref_path)
