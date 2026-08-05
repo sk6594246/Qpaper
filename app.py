@@ -17,16 +17,34 @@ st.write("Generate grounded Question Papers and Answer Sheets directly from your
 # --- ONE-TIME CONFIGURATION PANEL ---
 with st.sidebar:
     st.header("⚙️ Configuration")
-    api_key_input = st.text_input("Enter Gemini API Key", type="password")
     
+    # API Key Configuration
+    if "gemini_api_key" not in st.session_state:
+        st.session_state["gemini_api_key"] = ""
+        
+    api_key_input = st.text_input("Enter Gemini API Key", type="password", value=st.session_state["gemini_api_key"])
     if api_key_input:
         st.session_state["gemini_api_key"] = api_key_input
         st.success("API Key saved for session!")
     
     st.divider()
-    st.markdown("### 🏫 School Info (One-time Setup)")
-    school_name = st.text_input("School Name", "Global Public School")
-    class_name = st.text_input("Class / Grade", "Grade 10 - Science")
+    st.markdown("### 🏫 School & Class Info")
+    
+    # One-time / persistent school setup inputs saved to session state
+    school_name = st.text_input("School Name", value=st.session_state.get("school_name", "Global Public School"))
+    class_name = st.text_input("Class / Grade", value=st.session_state.get("class_name", "Grade 10 - Science"))
+    
+    st.session_state["school_name"] = school_name
+    st.session_state["class_name"] = class_name
+    
+    st.divider()
+    st.markdown("### 📋 Reference Artifact")
+    st.info("Upload a reference question paper artifact once. It persists across generations until changed.")
+    reference_artifact = st.file_uploader(
+        "Reference Paper Artifact", 
+        type=["png", "jpg", "jpeg", "pdf"],
+        key="persistent_reference"
+    )
 
 # Ensure API key is configured
 api_key = st.session_state.get("gemini_api_key")
@@ -38,19 +56,13 @@ if not api_key:
 client = genai.Client(api_key=api_key)
 
 # --- MAIN INPUT SECTION ---
-st.subheader("📁 Upload Materials & Reference Artifact")
+st.subheader("📁 Source Material")
 
-col1, col2 = st.columns(2)
-with col1:
-    primary_file = st.file_uploader(
-        "Source Snap / Document (Image/PDF)", 
-        type=["png", "jpg", "jpeg", "pdf"]
-    )
-with col2:
-    reference_artifact = st.file_uploader(
-        "Reference Paper Artifact (Optional)", 
-        type=["png", "jpg", "jpeg", "pdf"]
-    )
+primary_file = st.file_uploader(
+    "Upload Source Snap or Document (Image/PDF)", 
+    type=["png", "jpg", "jpeg", "pdf"],
+    key="primary_source"
+)
 
 instructions = st.text_area(
     "Custom Instructions (Optional)", 
@@ -61,9 +73,9 @@ instructions = st.text_area(
 class PDF(FPDF):
     def header(self):
         self.set_font('Arial', 'B', 14)
-        self.cell(0, 10, school_name, 0, 1, 'C')
+        self.cell(0, 10, st.session_state.get("school_name", "School"), 0, 1, 'C')
         self.set_font('Arial', '', 11)
-        self.cell(0, 6, f"Class: {class_name}", 0, 1, 'C')
+        self.cell(0, 6, f"Class: {st.session_state.get('class_name', 'Class')}", 0, 1, 'C')
         self.ln(5)
 
     def footer(self):
@@ -105,16 +117,16 @@ if st.button("🚀 Generate Question Paper & Answer Sheet", type="primary"):
                 uploaded_source = client.files.upload(file=temp_source_path)
                 contents_payload = [uploaded_source]
                 
-                # Save reference artifact temporarily if provided
+                # Save reference artifact temporarily if provided in sidebar
                 if reference_artifact:
                     temp_ref_path = save_uploaded_file(reference_artifact)
                     uploaded_ref = client.files.upload(file=temp_ref_path)
                     contents_payload.append(uploaded_ref)
 
                 prompt_text = f"""
-                You are an expert academic examiner representing {school_name} for {class_name}. 
+                You are an expert academic examiner representing {st.session_state['school_name']} for {st.session_state['class_name']}. 
                 Using strictly and exclusively the attached source document(s), generate two distinct sections:
-                1. QUESTION PAPER: Formulate well-structured examination questions based ONLY on the provided source text/images. Follow formatting cues if a reference artifact was provided.
+                1. QUESTION PAPER: Formulate well-structured examination questions based ONLY on the provided source text/images. Follow formatting cues from the reference artifact if provided.
                 2. ANSWER SHEET: Provide clear, accurate model answers for every question generated in the question paper.
                 
                 Additional instructions from user: {instructions}
@@ -151,12 +163,12 @@ if st.button("🚀 Generate Question Paper & Answer Sheet", type="primary"):
                 
                 with tab1:
                     st.markdown(qp_content)
-                    qp_bytes = create_pdf_bytes(f"Question Paper - {class_name}", qp_content)
+                    qp_bytes = create_pdf_bytes(f"Question Paper - {st.session_state['class_name']}", qp_content)
                     st.download_button("Download Question Paper PDF", qp_bytes, file_name="Question_Paper.pdf", mime="application/pdf")
 
                 with tab2:
                     st.markdown(ans_content)
-                    ans_bytes = create_pdf_bytes(f"Answer Sheet - {class_name}", ans_content)
+                    ans_bytes = create_pdf_bytes(f"Answer Sheet - {st.session_state['class_name']}", ans_content)
                     st.download_button("Download Answer Sheet PDF", ans_bytes, file_name="Answer_Sheet.pdf", mime="application/pdf")
 
             except Exception as e:
