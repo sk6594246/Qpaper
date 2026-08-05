@@ -145,4 +145,42 @@ if st.button("🚀 Generate Question Paper & Answer Sheet", type="primary"):
 
             except Exception as e:
                 st.error(f"An error occurred: {e}")
+                === ANSWER SHEET ===
+                [Insert Answer Sheet Content Here]
+                """
+                contents_payload.append(prompt_text)
+
+                # Call Gemini 2.5 Flash model
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=contents_payload
+                )
+                
+                full_text = response.text
+                
+                # Split output into Question Paper and Answer Sheet
+                if "=== ANSWER SHEET ===" in full_text:
+                    qp_part, ans_part = full_text.split("=== ANSWER SHEET ===", 1)
+                    qp_content = qp_part.replace("=== QUESTION PAPER ===", "").strip()
+                    ans_content = ans_part.strip()
+                else:
+                    qp_content = full_text
+                    ans_content = "Answer sheet could not be automatically separated. Review raw output."
+
+                st.success("Generation Complete!")
+
+                tab1, tab2 = st.tabs(["📋 Question Paper", "✅ Answer Sheet"])
+                
+                with tab1:
+                    st.markdown(qp_content)
+                    qp_bytes = create_pdf_bytes(f"Question Paper - {class_name}", qp_content)
+                    st.download_button("Download Question Paper PDF", qp_bytes, file_name="Question_Paper.pdf", mime="application/pdf")
+
+                with tab2:
+                    st.markdown(ans_content)
+                    ans_bytes = create_pdf_bytes(f"Answer Sheet - {class_name}", ans_content)
+                    st.download_button("Download Answer Sheet PDF", ans_bytes, file_name="Answer_Sheet.pdf", mime="application/pdf")
+
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
               
