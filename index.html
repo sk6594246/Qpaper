@@ -42,30 +42,23 @@
     #loading.active { display: flex; }
     .spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 16px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: .9rem; z-index: 1100; opacity: 0; transition: .25s; pointer-events: none; }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: .9rem; z-index: 1100; opacity: 0; transition: .25s; pointer-events: none; max-width: 90vw; text-align: center; }
     .toast.show { opacity: 1; }
-    /* Hidden PDF layout – professional question paper */
     #qpaper {
-      display: none;
-      font-family: "Times New Roman", Times, serif;
-      color: #000;
-      background: #fff;
-      padding: 40px 50px;
-      width: 210mm;
-      min-height: 297mm;
-      box-sizing: border-box;
+      display: none; font-family: "Times New Roman", Times, serif; color: #000; background: #fff;
+      padding: 40px 50px; width: 210mm; min-height: 297mm; box-sizing: border-box;
     }
     #qpaper .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px; }
     #qpaper .school { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
     #qpaper .exam-title { font-size: 16px; margin: 6px 0; }
-    #qpaper .meta { display: flex; justify-content: space-between; font-size: 13px; margin-top: 8px; }
+    #qpaper .meta { display: flex; justify-content: space-between; font-size: 13px; margin-top: 8px; flex-wrap: wrap; gap: 8px; }
     #qpaper .instructions { font-size: 12px; margin-bottom: 18px; border: 1px solid #000; padding: 8px 12px; }
     #qpaper .section-head { font-size: 14px; font-weight: bold; margin: 18px 0 10px; text-decoration: underline; }
     #qpaper .q { margin-bottom: 14px; font-size: 13px; }
     #qpaper .q-num { font-weight: bold; }
     #qpaper .options { margin-left: 22px; margin-top: 4px; }
     #qpaper .match-table { width: 100%; border-collapse: collapse; margin: 6px 0 6px 18px; font-size: 12px; }
-    #qpaper .match-table td { border: 1px solid #000; padding: 4px 8px; }
+    #qpaper .match-table td, #qpaper .match-table th { border: 1px solid #000; padding: 4px 8px; }
     #qpaper .footer { margin-top: 30px; text-align: center; font-size: 11px; border-top: 1px solid #999; padding-top: 8px; }
   </style>
 </head>
@@ -75,7 +68,6 @@
       <h1>📸 SnapQuiz → Question Paper</h1>
     </header>
 
-    <!-- API Key -->
     <div class="card">
       <div class="section-title">Gemini API</div>
       <label for="apiKey">API Key</label>
@@ -83,7 +75,6 @@
       <p class="hint">Get a free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>. Stored only in your browser.</p>
     </div>
 
-    <!-- Subject & Question Types -->
     <div class="card">
       <div class="section-title">Paper Settings</div>
       <label for="subject">Subject</label>
@@ -126,7 +117,6 @@
       </div>
     </div>
 
-    <!-- Image / Document -->
     <div class="card">
       <div class="section-title">Source Material (one knowledge document)</div>
       <div class="image-zone" id="dropZone">
@@ -141,7 +131,6 @@
     <button class="btn btn-secondary" id="downloadBtn" style="display:none">⬇️ Download PDF again</button>
   </div>
 
-  <!-- Loading -->
   <div id="loading">
     <div class="spinner"></div>
     <div id="loadingText">Analysing document & generating questions…</div>
@@ -149,7 +138,6 @@
 
   <div class="toast" id="toast"></div>
 
-  <!-- Hidden professional question-paper layout (used for PDF) -->
   <div id="qpaper">
     <div class="header">
       <div class="school">SNAPQUIZ EXAMINATION</div>
@@ -174,34 +162,38 @@
 
   <script>
     // ========== STATE ==========
-    let capturedImage = null;   // { mimeType, base64 }
-    let lastQuestions = [];     // for re-download
+    let capturedImage = null;
+    let lastQuestions = [];
 
+    // Latest stable multimodal models (Aug 2026) – ordered newest → oldest
     const GEMINI_MODELS = [
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-1.5-pro'
+      'gemini-3.6-flash',
+      'gemini-3.5-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash'
     ];
 
     // ========== DOM ==========
-    const apiKeyEl = document.getElementById('apiKey');
-    const subjectEl = document.getElementById('subject');
-    const qCountEl = document.getElementById('qCount');
-    const ageGroupEl = document.getElementById('ageGroup');
-    const otherCheck = document.getElementById('otherCheck');
-    const otherWrap = document.getElementById('otherWrap');
-    const otherTypeEl = document.getElementById('otherType');
-    const dropZone = document.getElementById('dropZone');
-    const fileInput = document.getElementById('fileInput');
-    const preview = document.getElementById('preview');
-    const generateBtn = document.getElementById('generateBtn');
-    const downloadBtn = document.getElementById('downloadBtn');
-    const loading = document.getElementById('loading');
-    const toastEl = document.getElementById('toast');
+    const apiKeyEl     = document.getElementById('apiKey');
+    const subjectEl    = document.getElementById('subject');
+    const qCountEl     = document.getElementById('qCount');
+    const ageGroupEl   = document.getElementById('ageGroup');
+    const otherCheck   = document.getElementById('otherCheck');
+    const otherWrap    = document.getElementById('otherWrap');
+    const otherTypeEl  = document.getElementById('otherType');
+    const dropZone     = document.getElementById('dropZone');
+    const fileInput    = document.getElementById('fileInput');
+    const preview      = document.getElementById('preview');
+    const generateBtn  = document.getElementById('generateBtn');
+    const downloadBtn  = document.getElementById('downloadBtn');
+    const loading      = document.getElementById('loading');
+    const toastEl      = document.getElementById('toast');
 
     // Restore API key
     apiKeyEl.value = localStorage.getItem('snapquiz_api_key') || '';
-    apiKeyEl.addEventListener('change', () => localStorage.setItem('snapquiz_api_key', apiKeyEl.value.trim()));
+    apiKeyEl.addEventListener('change', () => {
+      localStorage.setItem('snapquiz_api_key', apiKeyEl.value.trim());
+    });
 
     otherCheck.addEventListener('change', () => {
       otherWrap.style.display = otherCheck.checked ? 'block' : 'none';
@@ -216,7 +208,9 @@
       dropZone.classList.remove('dragover');
       if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
     });
-    fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+    fileInput.addEventListener('change', e => {
+      if (e.target.files[0]) handleFile(e.target.files[0]);
+    });
 
     function handleFile(file) {
       if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
@@ -250,19 +244,29 @@
 
     async function generatePaper() {
       const apiKey = apiKeyEl.value.trim();
-      if (!apiKey) { showToast('Paste your Gemini API key first'); return; }
-      if (!capturedImage) { showToast('Upload a photo or PDF first'); return; }
+      if (!apiKey) {
+        showToast('Paste your Gemini API key first');
+        apiKeyEl.focus();
+        return;
+      }
+      if (!capturedImage) {
+        showToast('Upload a photo or PDF first');
+        return;
+      }
 
       const types = [...document.querySelectorAll('#typeGrid input:checked')].map(c => c.value);
-      if (types.length === 0) { showToast('Select at least one question type'); return; }
+      if (types.length === 0) {
+        showToast('Select at least one question type');
+        return;
+      }
       if (types.includes('other') && !otherTypeEl.value.trim()) {
         showToast('Enter a name for the custom type');
         return;
       }
 
       const subject = subjectEl.value.trim() || 'General Knowledge';
-      const count = parseInt(qCountEl.value, 10);
-      const age = ageGroupEl.value;
+      const count   = parseInt(qCountEl.value, 10);
+      const age     = ageGroupEl.value;
 
       setLoading(true, 'Reading document with Gemini…');
 
@@ -275,7 +279,7 @@
         showToast('Question paper PDF downloaded!', 'success');
       } catch (err) {
         console.error(err);
-        showToast(err.message || 'Generation failed');
+        showToast(friendlyError(err));
       } finally {
         setLoading(false);
       }
@@ -283,29 +287,30 @@
 
     downloadBtn.addEventListener('click', () => {
       if (lastQuestions.length) {
-        buildPaperHTML(subjectEl.value.trim() || 'General Knowledge', lastQuestions);
-        downloadPDF(subjectEl.value.trim() || 'General');
+        const subject = subjectEl.value.trim() || 'General Knowledge';
+        buildPaperHTML(subject, lastQuestions);
+        downloadPDF(subject);
       }
     });
 
-    // ========== GEMINI ==========
+    // ========== GEMINI with robust fallback + error handling ==========
     async function callGemini(apiKey, image, subject, types, count, age) {
       const typeDescriptions = {
-        mcq: 'Multiple Choice (exactly 4 options A-D, one correct)',
+        mcq:       'Multiple Choice (exactly 4 options A-D, one correct)',
         truefalse: 'True / False statements',
-        short: 'Short Answer (1-3 sentences expected)',
-        long: 'Long Answer / Essay type (detailed explanation expected)',
-        match: 'Match the Following (two columns with 4-5 pairs)',
-        other: otherTypeEl.value.trim() || 'Custom'
+        short:     'Short Answer (1-3 sentences expected)',
+        long:      'Long Answer / Essay type (detailed explanation expected)',
+        match:     'Match the Following (two columns with 4-5 pairs)',
+        other:     otherTypeEl.value.trim() || 'Custom'
       };
 
       const selectedDesc = types.map(t => typeDescriptions[t]).join(', ');
 
       const ageTone = {
-        '5-7': 'very simple language suitable for young children',
+        '5-7':  'very simple language suitable for young children',
         '8-10': 'clear language for elementary students',
-        '11-13': 'age-appropriate for middle school',
-        '14+': 'exam-oriented, precise language suitable for secondary / higher secondary'
+        '11-13':'age-appropriate for middle school',
+        '14+':  'exam-oriented, precise language suitable for secondary / higher secondary'
       }[age];
 
       const prompt = `You are an expert examination paper setter for the subject "${subject}".
@@ -319,8 +324,8 @@ Requirements:
 - Every question must be answerable only from the given material
 - For MCQ: provide 4 options and indicate the correct one (index 0-3)
 - For True/False: the statement + correct boolean
-- For Match the Following: two arrays (columnA, columnB) of equal length + the correct matching indices
-- For Short/Long/Other: just the question text (no answer key needed in the paper)
+- For Match the Following: two arrays (columnA, columnB) of equal length
+- For Short/Long/Other: just the question text
 
 Return ONLY valid JSON in this exact schema:
 {
@@ -328,13 +333,13 @@ Return ONLY valid JSON in this exact schema:
     {
       "type": "mcq" | "truefalse" | "short" | "long" | "match" | "other",
       "question": "string",
-      "options": ["A...", "B...", "C...", "D..."],          // only for mcq
-      "correctIndex": 0,                                   // only for mcq
-      "statement": "string",                               // only for truefalse
-      "isTrue": true,                                      // only for truefalse
-      "columnA": ["item1", ...],                           // only for match
-      "columnB": ["item1", ...],                           // only for match
-      "marks": 1                                           // suggested marks
+      "options": ["A...", "B...", "C...", "D..."],
+      "correctIndex": 0,
+      "statement": "string",
+      "isTrue": true,
+      "columnA": ["item1", ...],
+      "columnB": ["item1", ...],
+      "marks": 1
     }
   ]
 }`;
@@ -353,9 +358,12 @@ Return ONLY valid JSON in this exact schema:
         }
       };
 
-      let lastError;
+      let lastError = null;
+
       for (const model of GEMINI_MODELS) {
         try {
+          setLoading(true, `Trying model: ${model}…`);
+
           const res = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
             {
@@ -367,24 +375,82 @@ Return ONLY valid JSON in this exact schema:
               body: JSON.stringify(payload)
             }
           );
+
+          const data = await res.json().catch(() => ({}));
+
           if (!res.ok) {
-            const err = await res.json().catch(() => ({}));
-            throw new Error(err.error?.message || `HTTP ${res.status}`);
+            const msg = data?.error?.message || `HTTP ${res.status}`;
+            // Skip this model if it is retired / not found
+            if (/not found|not supported|does not exist/i.test(msg)) {
+              console.warn(`Model ${model} unavailable → trying next`);
+              lastError = new Error(msg);
+              continue;
+            }
+            // Real errors (bad key, quota, safety, etc.) → stop
+            throw new Error(msg);
           }
-          const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (!text) throw new Error('Empty response from model');
-          const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
-          if (!parsed.questions || !Array.isArray(parsed.questions)) {
-            throw new Error('Invalid JSON structure');
+
+          const candidate = data.candidates?.[0];
+          if (!candidate) {
+            const reason = data.promptFeedback?.blockReason || 'No response from model';
+            throw new Error(reason);
           }
+
+          const text = candidate.content?.parts?.[0]?.text;
+          if (!text) throw new Error('Empty response from the model');
+
+          let parsed;
+          try {
+            parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+          } catch {
+            const match = text.match(/\{[\s\S]*\}/);
+            if (!match) throw new Error('Could not parse JSON from model');
+            parsed = JSON.parse(match[0]);
+          }
+
+          if (!parsed.questions || !Array.isArray(parsed.questions) || parsed.questions.length === 0) {
+            throw new Error('Model returned no questions');
+          }
+
+          console.log(`Success with model: ${model}`);
           return parsed.questions;
+
         } catch (e) {
           lastError = e;
-          console.warn(`Model ${model} failed:`, e.message);
+          // Only continue to next model on “not found / not supported”
+          if (/not found|not supported|does not exist/i.test(e.message)) {
+            continue;
+          }
+          // Otherwise re-throw (invalid key, safety block, etc.)
+          throw e;
         }
       }
-      throw lastError || new Error('All models failed');
+
+      // All models failed
+      throw lastError || new Error('All Gemini models failed. Check your API key and try again.');
+    }
+
+    // Clean user-facing error messages
+    function friendlyError(err) {
+      const msg = (err && err.message) ? err.message : String(err);
+
+      if (/API key not valid|invalid api key|PERMISSION_DENIED/i.test(msg)) {
+        return 'Invalid Gemini API key. Please check the key in Google AI Studio.';
+      }
+      if (/quota|rate limit|RESOURCE_EXHAUSTED/i.test(msg)) {
+        return 'Gemini quota exceeded. Wait a minute or check your free-tier limits.';
+      }
+      if (/not found|not supported/i.test(msg)) {
+        return 'All current Gemini models failed. The model list may need updating.';
+      }
+      if (/safety|blocked|SAFETY/i.test(msg)) {
+        return 'Request blocked by Gemini safety filters. Try a different image.';
+      }
+      if (/Empty response|No response/i.test(msg)) {
+        return 'Gemini returned an empty response. Try a clearer photo.';
+      }
+      // fallback – show first 120 chars
+      return msg.length > 120 ? msg.slice(0, 117) + '…' : msg;
     }
 
     // ========== BUILD PAPER HTML ==========
@@ -399,7 +465,6 @@ Return ONLY valid JSON in this exact schema:
       const body = document.getElementById('paperBody');
       body.innerHTML = '';
 
-      // Group by type for nicer layout
       const groups = {};
       questions.forEach((q, i) => {
         const t = q.type || 'other';
@@ -408,12 +473,12 @@ Return ONLY valid JSON in this exact schema:
       });
 
       const typeTitles = {
-        mcq: 'Section A – Multiple Choice Questions',
+        mcq:       'Section A – Multiple Choice Questions',
         truefalse: 'Section B – True or False',
-        short: 'Section C – Short Answer Questions',
-        long: 'Section D – Long Answer Questions',
-        match: 'Section E – Match the Following',
-        other: 'Section F – ' + (otherTypeEl.value.trim() || 'Other Questions')
+        short:     'Section C – Short Answer Questions',
+        long:      'Section D – Long Answer Questions',
+        match:     'Section E – Match the Following',
+        other:     'Section F – ' + (otherTypeEl.value.trim() || 'Other Questions')
       };
 
       let qNum = 1;
@@ -444,7 +509,6 @@ Return ONLY valid JSON in this exact schema:
                 ).join('')}
               </table>`;
           } else {
-            // short / long / other
             html += `${escapeHtml(q.question)} <em>(${marks} mark${marks > 1 ? 's' : ''})</em>
               <div style="height:${type === 'long' ? 80 : 36}px; border-bottom:1px dotted #999; margin:6px 0 2px 18px;"></div>
               ${type === 'long' ? '<div style="height:80px; border-bottom:1px dotted #999; margin:0 0 2px 18px;"></div>' : ''}`;
@@ -487,7 +551,7 @@ Return ONLY valid JSON in this exact schema:
     function showToast(msg, type = 'error') {
       toastEl.textContent = (type === 'success' ? '✅ ' : '⚠️ ') + msg;
       toastEl.classList.add('show');
-      setTimeout(() => toastEl.classList.remove('show'), 3500);
+      setTimeout(() => toastEl.classList.remove('show'), 4200);
     }
 
     function escapeHtml(str) {
