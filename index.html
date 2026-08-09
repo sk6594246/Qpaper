@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>SnapQuiz → Question Paper PDF</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    :root {
+      --ink: #0f1419; --ink-muted: #5a6a7a; --paper: #f8fafc; --paper-elevated: #fff;
+      --accent: #2563eb; --accent-soft: #dbeafe; --border: #e2e8f0; --success: #059669;
+      --radius: 12px; --shadow: 0 4px 12px rgba(15,20,25,.08);
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font); background: var(--paper); color: var(--ink); min-height: 100vh; line-height: 1.5; }
+    .app { max-width: 720px; margin: 0 auto; padding: 16px; padding-bottom: 80px; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+    h1 { font-size: 1.4rem; font-weight: 700; }
+    .card { background: var(--paper-elevated); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); }
+    .section-title { font-size: .75rem; font-weight: 600; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 10px; }
+    label { display: block; font-size: .875rem; font-weight: 600; margin-bottom: 6px; }
+    input[type="text"], input[type="password"], select, textarea {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 1rem; font-family: inherit; background: #fff;
+    }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .type-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; cursor: pointer; user-select: none; }
+    .type-item:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+    .type-item input { width: auto; }
+    .image-zone { border: 2px dashed var(--border); border-radius: var(--radius); padding: 24px; text-align: center; cursor: pointer; transition: .15s; }
+    .image-zone:hover, .image-zone.dragover { border-color: var(--accent); background: var(--accent-soft); }
+    .image-zone img { max-width: 100%; max-height: 220px; border-radius: 8px; margin-top: 12px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 14px; font-size: 1rem; font-weight: 600; border: none; border-radius: 10px; cursor: pointer; font-family: inherit; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-secondary { background: #e2e8f0; color: var(--ink); margin-top: 8px; }
+    .hint { font-size: .8rem; color: var(--ink-muted); margin-top: 6px; }
+    #loading { display: none; position: fixed; inset: 0; background: rgba(15,20,25,.55); z-index: 1000; align-items: center; justify-content: center; flex-direction: column; color: #fff; }
+    #loading.active { display: flex; }
+    .spinner { width: 48px; height: 48px; border: 4px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .8s linear infinite; margin-bottom: 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: .9rem; z-index: 1100; opacity: 0; transition: .25s; pointer-events: none; }
+    .toast.show { opacity: 1; }
+    /* Hidden PDF layout – professional question paper */
+    #qpaper {
+      display: none;
+      font-family: "Times New Roman", Times, serif;
+      color: #000;
+      background: #fff;
+      padding: 40px 50px;
+      width: 210mm;
+      min-height: 297mm;
+      box-sizing: border-box;
+    }
+    #qpaper .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 20px; }
+    #qpaper .school { font-size: 20px; font-weight: bold; letter-spacing: 1px; }
+    #qpaper .exam-title { font-size: 16px; margin: 6px 0; }
+    #qpaper .meta { display: flex; justify-content: space-between; font-size: 13px; margin-top: 8px; }
+    #qpaper .instructions { font-size: 12px; margin-bottom: 18px; border: 1px solid #000; padding: 8px 12px; }
+    #qpaper .section-head { font-size: 14px; font-weight: bold; margin: 18px 0 10px; text-decoration: underline; }
+    #qpaper .q { margin-bottom: 14px; font-size: 13px; }
+    #qpaper .q-num { font-weight: bold; }
+    #qpaper .options { margin-left: 22px; margin-top: 4px; }
+    #qpaper .match-table { width: 100%; border-collapse: collapse; margin: 6px 0 6px 18px; font-size: 12px; }
+    #qpaper .match-table td { border: 1px solid #000; padding: 4px 8px; }
+    #qpaper .footer { margin-top: 30px; text-align: center; font-size: 11px; border-top: 1px solid #999; padding-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>📸 SnapQuiz → Question Paper</h1>
+    </header>
+
+    <!-- API Key -->
+    <div class="card">
+      <div class="section-title">Gemini API</div>
+      <label for="apiKey">API Key</label>
+      <input type="password" id="apiKey" placeholder="Paste your Gemini API key" />
+      <p class="hint">Get a free key at <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>. Stored only in your browser.</p>
+    </div>
+
+    <!-- Subject & Question Types -->
+    <div class="card">
+      <div class="section-title">Paper Settings</div>
+      <label for="subject">Subject</label>
+      <input type="text" id="subject" placeholder="e.g. Science, History, Mathematics" value="General Knowledge" />
+
+      <label style="margin-top:14px">Question Types (select one or more)</label>
+      <div class="type-grid" id="typeGrid">
+        <label class="type-item"><input type="checkbox" value="mcq" checked /> Multiple Choice</label>
+        <label class="type-item"><input type="checkbox" value="truefalse" /> True / False</label>
+        <label class="type-item"><input type="checkbox" value="short" /> Short Answer</label>
+        <label class="type-item"><input type="checkbox" value="long" /> Long Answer</label>
+        <label class="type-item"><input type="checkbox" value="match" /> Match the Following</label>
+        <label class="type-item"><input type="checkbox" value="other" id="otherCheck" /> Other</label>
+      </div>
+      <div id="otherWrap" style="display:none; margin-top:10px">
+        <label for="otherType">Custom type name</label>
+        <input type="text" id="otherType" placeholder="e.g. Fill in the blanks, Assertion-Reason" />
+      </div>
+
+      <div class="row" style="margin-top:14px">
+        <div>
+          <label for="qCount">Number of Questions</label>
+          <select id="qCount">
+            <option value="5">5</option>
+            <option value="8" selected>8</option>
+            <option value="10">10</option>
+            <option value="12">12</option>
+            <option value="15">15</option>
+          </select>
+        </div>
+        <div>
+          <label for="ageGroup">Difficulty / Age</label>
+          <select id="ageGroup">
+            <option value="5-7">Ages 5-7 (very easy)</option>
+            <option value="8-10" selected>Ages 8-10</option>
+            <option value="11-13">Ages 11-13</option>
+            <option value="14+">14+ / Exam level</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image / Document -->
+    <div class="card">
+      <div class="section-title">Source Material (one knowledge document)</div>
+      <div class="image-zone" id="dropZone">
+        <p>📷 Click or drag photo / PDF of textbook page, notes, etc.</p>
+        <p class="hint">Gemini will read the content and generate questions from it.</p>
+        <input type="file" id="fileInput" accept="image/*,application/pdf" hidden />
+        <img id="preview" style="display:none" alt="Preview" />
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="generateBtn" disabled>Generate Question Paper PDF</button>
+    <button class="btn btn-secondary" id="downloadBtn" style="display:none">⬇️ Download PDF again</button>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <div id="loadingText">Analysing document & generating questions…</div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <!-- Hidden professional question-paper layout (used for PDF) -->
+  <div id="qpaper">
+    <div class="header">
+      <div class="school">SNAPQUIZ EXAMINATION</div>
+      <div class="exam-title" id="paperTitle">QUESTION PAPER</div>
+      <div class="meta">
+        <span>Subject: <strong id="paperSubject"></strong></span>
+        <span>Date: <span id="paperDate"></span></span>
+        <span>Max. Marks: <span id="paperMarks"></span></span>
+        <span>Time: 1 Hour</span>
+      </div>
+    </div>
+    <div class="instructions">
+      <strong>General Instructions:</strong><br>
+      1. Read all questions carefully before answering.<br>
+      2. All questions are compulsory unless otherwise stated.<br>
+      3. Write answers in the space provided / on the answer sheet.<br>
+      4. Marks for each question are indicated against it.
+    </div>
+    <div id="paperBody"></div>
+    <div class="footer">— End of Question Paper — Generated with SnapQuiz + Gemini AI</div>
+  </div>
+
+  <script>
+    // ========== STATE ==========
+    let capturedImage = null;   // { mimeType, base64 }
+    let lastQuestions = [];     // for re-download
+
+    const GEMINI_MODELS = [
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro'
+    ];
+
+    // ========== DOM ==========
+    const apiKeyEl = document.getElementById('apiKey');
+    const subjectEl = document.getElementById('subject');
+    const qCountEl = document.getElementById('qCount');
+    const ageGroupEl = document.getElementById('ageGroup');
+    const otherCheck = document.getElementById('otherCheck');
+    const otherWrap = document.getElementById('otherWrap');
+    const otherTypeEl = document.getElementById('otherType');
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const preview = document.getElementById('preview');
+    const generateBtn = document.getElementById('generateBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const loading = document.getElementById('loading');
+    const toastEl = document.getElementById('toast');
+
+    // Restore API key
+    apiKeyEl.value = localStorage.getItem('snapquiz_api_key') || '';
+    apiKeyEl.addEventListener('change', () => localStorage.setItem('snapquiz_api_key', apiKeyEl.value.trim()));
+
+    otherCheck.addEventListener('change', () => {
+      otherWrap.style.display = otherCheck.checked ? 'block' : 'none';
+    });
+
+    // ========== FILE HANDLING ==========
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+
+    function handleFile(file) {
+      if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+        showToast('Please select an image or PDF');
+        return;
+      }
+      if (file.size > 18 * 1024 * 1024) {
+        showToast('File too large (max ~18 MB)');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        const dataUrl = reader.result;
+        const mime = file.type || 'image/jpeg';
+        const base64 = dataUrl.split(',')[1];
+        capturedImage = { mimeType: mime, base64 };
+        if (mime.startsWith('image/')) {
+          preview.src = dataUrl;
+          preview.style.display = 'block';
+        } else {
+          preview.style.display = 'none';
+          dropZone.querySelector('p').textContent = '📄 ' + file.name + ' ready';
+        }
+        generateBtn.disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ========== GENERATE ==========
+    generateBtn.addEventListener('click', generatePaper);
+
+    async function generatePaper() {
+      const apiKey = apiKeyEl.value.trim();
+      if (!apiKey) { showToast('Paste your Gemini API key first'); return; }
+      if (!capturedImage) { showToast('Upload a photo or PDF first'); return; }
+
+      const types = [...document.querySelectorAll('#typeGrid input:checked')].map(c => c.value);
+      if (types.length === 0) { showToast('Select at least one question type'); return; }
+      if (types.includes('other') && !otherTypeEl.value.trim()) {
+        showToast('Enter a name for the custom type');
+        return;
+      }
+
+      const subject = subjectEl.value.trim() || 'General Knowledge';
+      const count = parseInt(qCountEl.value, 10);
+      const age = ageGroupEl.value;
+
+      setLoading(true, 'Reading document with Gemini…');
+
+      try {
+        const questions = await callGemini(apiKey, capturedImage, subject, types, count, age);
+        lastQuestions = questions;
+        buildPaperHTML(subject, questions);
+        await downloadPDF(subject);
+        downloadBtn.style.display = 'block';
+        showToast('Question paper PDF downloaded!', 'success');
+      } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Generation failed');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    downloadBtn.addEventListener('click', () => {
+      if (lastQuestions.length) {
+        buildPaperHTML(subjectEl.value.trim() || 'General Knowledge', lastQuestions);
+        downloadPDF(subjectEl.value.trim() || 'General');
+      }
+    });
+
+    // ========== GEMINI ==========
+    async function callGemini(apiKey, image, subject, types, count, age) {
+      const typeDescriptions = {
+        mcq: 'Multiple Choice (exactly 4 options A-D, one correct)',
+        truefalse: 'True / False statements',
+        short: 'Short Answer (1-3 sentences expected)',
+        long: 'Long Answer / Essay type (detailed explanation expected)',
+        match: 'Match the Following (two columns with 4-5 pairs)',
+        other: otherTypeEl.value.trim() || 'Custom'
+      };
+
+      const selectedDesc = types.map(t => typeDescriptions[t]).join(', ');
+
+      const ageTone = {
+        '5-7': 'very simple language suitable for young children',
+        '8-10': 'clear language for elementary students',
+        '11-13': 'age-appropriate for middle school',
+        '14+': 'exam-oriented, precise language suitable for secondary / higher secondary'
+      }[age];
+
+      const prompt = `You are an expert examination paper setter for the subject "${subject}".
+
+Analyse the provided image/PDF of study material thoroughly. Generate a balanced question paper based STRICTLY on the visible content.
+
+Requirements:
+- Total questions: exactly ${count}
+- Include a good mix of these question types: ${selectedDesc}
+- Language level: ${ageTone}
+- Every question must be answerable only from the given material
+- For MCQ: provide 4 options and indicate the correct one (index 0-3)
+- For True/False: the statement + correct boolean
+- For Match the Following: two arrays (columnA, columnB) of equal length + the correct matching indices
+- For Short/Long/Other: just the question text (no answer key needed in the paper)
+
+Return ONLY valid JSON in this exact schema:
+{
+  "questions": [
+    {
+      "type": "mcq" | "truefalse" | "short" | "long" | "match" | "other",
+      "question": "string",
+      "options": ["A...", "B...", "C...", "D..."],          // only for mcq
+      "correctIndex": 0,                                   // only for mcq
+      "statement": "string",                               // only for truefalse
+      "isTrue": true,                                      // only for truefalse
+      "columnA": ["item1", ...],                           // only for match
+      "columnB": ["item1", ...],                           // only for match
+      "marks": 1                                           // suggested marks
+    }
+  ]
+}`;
+
+      const payload = {
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: image.mimeType, data: image.base64 } }
+          ]
+        }],
+        generationConfig: {
+          maxOutputTokens: 8192,
+          responseMimeType: 'application/json'
+        }
+      };
+
+      let lastError;
+      for (const model of GEMINI_MODELS) {
+        try {
+          const res = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': apiKey
+              },
+              body: JSON.stringify(payload)
+            }
+          );
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error?.message || `HTTP ${res.status}`);
+          }
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (!text) throw new Error('Empty response from model');
+          const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+          if (!parsed.questions || !Array.isArray(parsed.questions)) {
+            throw new Error('Invalid JSON structure');
+          }
+          return parsed.questions;
+        } catch (e) {
+          lastError = e;
+          console.warn(`Model ${model} failed:`, e.message);
+        }
+      }
+      throw lastError || new Error('All models failed');
+    }
+
+    // ========== BUILD PAPER HTML ==========
+    function buildPaperHTML(subject, questions) {
+      document.getElementById('paperSubject').textContent = subject;
+      document.getElementById('paperDate').textContent = new Date().toLocaleDateString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric'
+      });
+      document.getElementById('paperTitle').textContent = `${subject.toUpperCase()} – QUESTION PAPER`;
+
+      let totalMarks = 0;
+      const body = document.getElementById('paperBody');
+      body.innerHTML = '';
+
+      // Group by type for nicer layout
+      const groups = {};
+      questions.forEach((q, i) => {
+        const t = q.type || 'other';
+        if (!groups[t]) groups[t] = [];
+        groups[t].push({ ...q, originalIndex: i + 1 });
+      });
+
+      const typeTitles = {
+        mcq: 'Section A – Multiple Choice Questions',
+        truefalse: 'Section B – True or False',
+        short: 'Section C – Short Answer Questions',
+        long: 'Section D – Long Answer Questions',
+        match: 'Section E – Match the Following',
+        other: 'Section F – ' + (otherTypeEl.value.trim() || 'Other Questions')
+      };
+
+      let qNum = 1;
+      for (const [type, list] of Object.entries(groups)) {
+        const section = document.createElement('div');
+        section.innerHTML = `<div class="section-head">${typeTitles[type] || type}</div>`;
+
+        list.forEach(q => {
+          const marks = q.marks || (type === 'long' ? 5 : type === 'match' ? 4 : 1);
+          totalMarks += marks;
+
+          let html = `<div class="q"><span class="q-num">Q${qNum}.</span> `;
+
+          if (type === 'mcq') {
+            html += `${escapeHtml(q.question)} <em>(${marks} mark${marks > 1 ? 's' : ''})</em>
+              <div class="options">
+                ${(q.options || []).map((o, i) => `${String.fromCharCode(65 + i)}. ${escapeHtml(o)}`).join('<br>')}
+              </div>`;
+          } else if (type === 'truefalse') {
+            html += `${escapeHtml(q.statement || q.question)} <em>(${marks} mark)</em>
+              <div class="options">True &nbsp;&nbsp; False</div>`;
+          } else if (type === 'match') {
+            html += `Match the following <em>(${marks} marks)</em>
+              <table class="match-table">
+                <tr><th>Column A</th><th>Column B</th></tr>
+                ${(q.columnA || []).map((a, i) =>
+                  `<tr><td>${i + 1}. ${escapeHtml(a)}</td><td>${String.fromCharCode(97 + i)}. ${escapeHtml((q.columnB || [])[i] || '')}</td></tr>`
+                ).join('')}
+              </table>`;
+          } else {
+            // short / long / other
+            html += `${escapeHtml(q.question)} <em>(${marks} mark${marks > 1 ? 's' : ''})</em>
+              <div style="height:${type === 'long' ? 80 : 36}px; border-bottom:1px dotted #999; margin:6px 0 2px 18px;"></div>
+              ${type === 'long' ? '<div style="height:80px; border-bottom:1px dotted #999; margin:0 0 2px 18px;"></div>' : ''}`;
+          }
+
+          html += `</div>`;
+          section.innerHTML += html;
+          qNum++;
+        });
+        body.appendChild(section);
+      }
+
+      document.getElementById('paperMarks').textContent = totalMarks;
+    }
+
+    // ========== PDF DOWNLOAD ==========
+    async function downloadPDF(subject) {
+      const element = document.getElementById('qpaper');
+      element.style.display = 'block';
+
+      const opt = {
+        margin: [10, 10, 10, 10],
+        filename: `${subject.replace(/\s+/g, '_')}_Question_Paper.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+
+      await html2pdf().set(opt).from(element).save();
+      element.style.display = 'none';
+    }
+
+    // ========== HELPERS ==========
+    function setLoading(on, text) {
+      loading.classList.toggle('active', on);
+      if (text) document.getElementById('loadingText').textContent = text;
+      generateBtn.disabled = on;
+    }
+
+    function showToast(msg, type = 'error') {
+      toastEl.textContent = (type === 'success' ? '✅ ' : '⚠️ ') + msg;
+      toastEl.classList.add('show');
+      setTimeout(() => toastEl.classList.remove('show'), 3500);
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
