@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KAAD Portraits — Curated Visual Work</title>
+<meta name="description" content="KAAD Portraits — a curated collection of editorial, landscape, and portrait photography." />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230a0a0a'/%3E%3Ctext x='50' y='68' font-size='58' font-family='Georgia,serif' fill='%23D4AF37' text-anchor='middle'%3EK%3C/text%3E%3C/svg%3E" />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="KAAD Portraits" />
+<meta property="og:description" content="A curated collection of editorial, landscape, and portrait photography." />
+<meta property="og:image" content="" id="ogImageMeta" />
+<meta name="twitter:card" content="summary_large_image" />
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moderna:ital,opsz,wght@0,6..96,400;0,6..96,700;1,6..96,400&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          brand: {
+            gold: 'rgb(var(--brand-gold) / <alpha-value>)',
+            dark: 'rgb(var(--brand-dark) / <alpha-value>)',
+            light: 'rgb(var(--brand-light) / <alpha-value>)',
+            muted: 'rgb(var(--brand-muted) / <alpha-value>)',
+            border: 'rgb(var(--brand-border) / <alpha-value>)',
+            surface: 'rgb(var(--brand-surface) / <alpha-value>)'
+          }
+        },
+        fontFamily: { serif: ['"Bodoni Moderna"', 'serif'], sans: ['Inter', 'sans-serif'] },
+        spacing: { wrap: '1.5rem', content: '1.5rem' },
+        animation: {
+          'fade-in': 'fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+          'slide-up': 'slideUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        },
+        keyframes: {
+          fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+          slideUp: { '0%': { opacity: '0', transform: 'translateY(20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
+        }
+      }
+    }
+  }
+</script>
+<script>
+  (function () {
+    try {
+      if (localStorage.getItem('kaad-theme') === 'light') {
+        document.documentElement.classList.add('theme-light');
+      }
+    } catch (e) {}
+  })();
+</script>
+<style>
+  :root {
+    --brand-gold: 212 175 55;
+    --brand-dark: 10 10 10;
+    --brand-light: 229 229 229;
+    --brand-muted: 138 138 138;
+    --brand-border: 42 42 42;
+    --brand-surface: 18 18 18;
+  }
+  html.theme-light {
+    --brand-gold: 154 116 26;
+    --brand-dark: 250 249 246;
+    --brand-light: 26 26 26;
+    --brand-muted: 110 105 97;
+    --brand-border: 224 219 209;
+    --brand-surface: 242 240 235;
+  }
+  body { font-family: 'Inter', sans-serif; background-color: rgb(var(--brand-dark)); color: rgb(var(--brand-light)); transition: background-color 0.3s ease, color 0.3s ease; }
+  .font-serif { font-family: 'Bodoni Moderna', serif; }
+  .nav-link-underline { position: relative; }
+  .nav-link-underline::after {
+    content: ''; position: absolute; bottom: -2px; left: 0; width: 100%; height: 1px;
+    background-color: currentColor; transform: scaleX(0); transform-origin: right;
+    transition: transform 0.6s cubic-bezier(0.43,0.145,0.285,1);
+  }
+  .nav-link-underline:hover::after { transform: scaleX(1); transform-origin: left; }
+  .cat-btn.active { color: rgb(var(--brand-light)); border-color: rgb(var(--brand-gold)); }
+  .cat-btn:not(.active) { color: rgb(var(--brand-muted)); border-color: transparent; }
+  .aspect-portrait { aspect-ratio: 3/4; }
+  .gallery-img { transition: transform 1.2s cubic-bezier(.165,.84,.44,1), filter 0.5s ease, opacity 0.6s ease; opacity: 0; filter: blur(8px); }
+  .gallery-img.loaded { opacity: 1; filter: blur(0); }
+  .group:hover .gallery-img.loaded { transform: scale(1.04); filter: brightness(1.05); }
+
+  /* Admin & Lightbox Overlays — intentionally always dark, regardless of site theme */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0; background: rgba(0,0,0,0.9);
+    z-index: 100; align-items: center; justify-content: center;
+    backdrop-filter: blur(8px);
+    opacity: 0; transition: opacity 0.3s ease;
+  }
+  .modal-overlay.open { display: flex; opacity: 1; }
+  
+  #adminPanel {
+    background: #111; border: 1px solid #2a2a2a; border-radius: 16px;
+    width: 95%; max-width: 680px; max-height: 90vh; overflow-y: auto;
+    padding: 2rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  }
+  .admin-input {
+    width: 100%; background: #0a0a0a; border: 1px solid #2a2a2a;
+    color: #e5e5e5; padding: 0.625rem 0.875rem; border-radius: 8px;
+    font-size: 0.875rem; transition: border-color 0.2s;
+  }
+  .admin-input:focus { outline: none; border-color: #D4AF37; }
+  .admin-btn {
+    background: #D4AF37; color: #0a0a0a; font-weight: 600;
+    padding: 0.625rem 1.25rem; border-radius: 8px; font-size: 0.875rem;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+  .admin-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+  .admin-btn-secondary {
+    background: transparent; border: 1px solid #2a2a2a; color: #e5e5e5;
+    padding: 0.625rem 1rem; border-radius: 8px; font-size: 0.875rem;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .admin-btn-secondary:hover { border-color: #D4AF37; color: #D4AF37; }
+  .admin-move-btn { background: transparent; border: 1px solid #2a2a2a; color: #8a8a8a; width: 26px; height: 26px; border-radius: 6px; display: flex; align-items: center; justify-content: center; transition: border-color 0.2s, color 0.2s; }
+  .admin-move-btn:hover:not(:disabled) { border-color: #D4AF37; color: #D4AF37; }
+  .admin-move-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* Skeleton loader animation */
+  @keyframes pulseSubtle {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.8; }
+  }
+  .skeleton {
+    background: rgb(var(--brand-surface));
+    animation: pulseSubtle 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+</style>
+</head>
+<body class="antialiased bg-brand-dark text-brand-light selection:bg-brand-gold selection:text-brand-dark">
+
+<!-- Nav -->
+<nav class="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] md:w-[90%] max-w-7xl">
+  <div class="flex items-center justify-between px-6 py-3.5 bg-brand-dark/85 backdrop-blur-md border border-brand-border rounded-full shadow-xl shadow-black/40">
+    <div class="flex items-center gap-3">
+      <a href="#" id="txt-navTitle" class="text-xs uppercase tracking-[0.25em] font-bold text-brand-gold">KAAD PORTRAITS</a>
+    </div>
+    <div class="hidden md:flex items-center gap-8" id="desktopNavLinks">
+      <a href="#home" data-section="home" class="nav-link-underline scroll-nav-link text-xs uppercase tracking-widest font-medium text-brand-light">Home</a>
+      <a href="#gallery" data-section="gallery" class="nav-link-underline scroll-nav-link text-xs uppercase tracking-widest font-medium text-brand-muted hover:text-brand-light">Gallery</a>
+      <a href="#about" data-section="about" class="nav-link-underline scroll-nav-link text-xs uppercase tracking-widest font-medium text-brand-muted hover:text-brand-light">About</a>
+      <a href="#contact" data-section="contact" class="nav-link-underline scroll-nav-link text-xs uppercase tracking-widest font-medium text-brand-muted hover:text-brand-light">Contact</a>
+    </div>
+    <div class="flex items-center gap-4">
+      <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-brand-surface border border-brand-border">
+        <span class="text-[10px] uppercase tracking-widest text-brand-muted">Live</span>
+        <div class="w-2 h-2 rounded-full bg-brand-gold animate-pulse"></div>
+      </div>
+      <button id="themeToggleBtn" title="Toggle light/dark" aria-label="Toggle light/dark theme" class="text-brand-muted hover:text-brand-gold transition-colors p-1.5">
+        <svg id="themeIconMoon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 14.5A8.5 8.5 0 1110.5 4a7 7 0 009.5 10.5z"/></svg>
+        <svg id="themeIconSun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" class="hidden"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12H5M19 12h2.5M4.2 19.8L6 18M18 6l1.8-1.8"/></svg>
+      </button>
+      <!-- Mobile menu button -->
+      <button id="mobileMenuBtn" class="md:hidden text-brand-light p-1.5 focus:outline-none" aria-label="Toggle menu">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 6h16M4 12h16M4 18h16"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Mobile Menu Drawer -->
+<div id="mobileMenu" class="fixed inset-0 z-50 bg-black/90 backdrop-blur-xl flex flex-col justify-center px-8 transition-all duration-300 opacity-0 pointer-events-none">
+  <button id="mobileMenuClose" class="absolute top-8 right-8 text-brand-muted hover:text-brand-light text-3xl focus:outline-none">×</button>
+  <div class="flex flex-col gap-8 text-center">
+    <a href="#home" class="mobile-nav-link text-2xl font-serif tracking-wide text-brand-light hover:text-brand-gold transition-colors">Home</a>
+    <a href="#gallery" class="mobile-nav-link text-2xl font-serif tracking-wide text-brand-light hover:text-brand-gold transition-colors">Gallery</a>
+    <a href="#about" class="mobile-nav-link text-2xl font-serif tracking-wide text-brand-light hover:text-brand-gold transition-colors">About</a>
+    <a href="#contact" class="mobile-nav-link text-2xl font-serif tracking-wide text-brand-light hover:text-brand-gold transition-colors">Contact</a>
+  </div>
+</div>
+
+<!-- Hero -->
+<header id="home" class="relative h-[85vh] md:h-[92vh] flex flex-col justify-end px-wrap pb-16 overflow-hidden">
+  <div class="absolute inset-0 z-0">
+    <img id="heroImg" class="w-full h-full object-cover bg-zinc-900 opacity-90 transition-opacity duration-1000" src="" alt="Hero photo" />
+    <div class="absolute inset-0 bg-gradient-to-t from-brand-dark via-brand-dark/30 to-black/40"></div>
+  </div>
+  <div class="relative z-10 max-w-7xl mx-auto w-full animate-slide-up">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-4 gap-4">
+      <h1 id="txt-heroTitle" class="text-xs uppercase tracking-[0.25em] font-medium text-brand-light">PORTFOLIO</h1>
+      <span id="txt-heroSubtitle" class="text-xs uppercase tracking-[0.25em] font-medium text-brand-muted">VISUAL WORK</span>
+    </div>
+  </div>
+</header>
+
+<main id="gallery">
+  <!-- Gallery -->
+  <section id="gallerySection" class="py-24 md:py-36 px-wrap">
+    <div class="max-w-7xl mx-auto">
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 md:mb-20 gap-8 border-b border-brand-border pb-8">
+        <h2 id="txt-galleryHeading" class="text-xs uppercase tracking-[0.25em] font-medium text-brand-gold">CURATED WORK</h2>
+        <div id="catNav" class="flex flex-wrap gap-3 md:gap-6"></div>
+      </div>
+      <div id="galleryGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-y-12 gap-x-8"></div>
+      <p id="galleryEmpty" class="hidden text-sm text-brand-muted py-12 text-center">No photos yet in this category.</p>
+    </div>
+  </section>
+
+  <!-- About -->
+  <section id="about" class="py-28 md:py-40 px-wrap border-t border-brand-border bg-brand-surface/30">
+    <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+      <div class="md:col-span-8">
+        <h3 id="txt-aboutHeading" class="text-4xl md:text-6xl lg:text-7xl font-serif leading-[1.1] tracking-tight uppercase">
+          the quiet <span class="italic lowercase">search</span> for<br>
+          quiet <span class="italic lowercase">light</span>
+        </h3>
+      </div>
+      <div class="md:col-span-4 flex flex-col justify-end">
+        <p id="txt-aboutText" class="text-sm md:text-base leading-relaxed text-brand-muted">
+          A visual storyteller working across editorial, landscape, and portrait work — frames that balance mood with precision.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Testimonials -->
+  <section id="testimonials" class="py-24 md:py-36 px-wrap border-t border-brand-border">
+    <div class="max-w-7xl mx-auto">
+      <h2 class="text-xs uppercase tracking-[0.25em] font-medium text-brand-gold mb-12 md:mb-16">What People Say</h2>
+      <div id="testimonialsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-8"></div>
+      <div id="testimonialsSkeleton" class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="border border-brand-border rounded-xl p-6 h-40 skeleton"></div>
+        <div class="border border-brand-border rounded-xl p-6 h-40 skeleton"></div>
+        <div class="border border-brand-border rounded-xl p-6 h-40 skeleton"></div>
+      </div>
+      <p id="testimonialsEmpty" class="hidden text-sm text-brand-muted py-4">No testimonials yet.</p>
+    </div>
+  </section>
+</main>
+
+<!-- Footer / Contact -->
+<footer id="contact" class="px-wrap pb-16 border-t border-brand-border pt-24 md:pt-36">
+  <div class="max-w-7xl mx-auto">
+    <h2 id="txt-footerHeading" class="text-5xl md:text-8xl lg:text-9xl font-serif uppercase tracking-tighter mb-16 md:mb-24 text-brand-light/90">PORTFOLIO</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-12 py-16 md:py-20 border-b border-brand-border">
+      <div class="md:col-span-4 space-y-4">
+        <span id="txt-contactLabel" class="text-[10px] uppercase tracking-[0.2em] text-brand-gold block">Contact</span>
+
+        <div class="flex items-center gap-2 group/copy">
+          <a id="contactEmail" href="#" class="flex items-center gap-2.5 text-sm hover:text-brand-gold transition-colors">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" class="shrink-0"><rect x="2.5" y="4.5" width="19" height="15" rx="2.5"/><path d="M3 6.5l9 6.5 9-6.5"/></svg>
+            <span id="contactEmailText">Loading…</span>
+          </a>
+          <button id="copyEmailBtn" type="button" class="hidden text-brand-muted hover:text-brand-gold transition-colors p-1" title="Copy email" aria-label="Copy email">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
+          </button>
+        </div>
+        <div class="flex items-center gap-2 group/copy">
+          <a id="contactPhone" href="#" class="flex items-center gap-2.5 text-sm hover:text-brand-gold transition-colors">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" class="shrink-0"><path d="M4 3.5h4l2 5-2.5 1.5a12 12 0 006 6l1.5-2.5 5 2v4a2 2 0 01-2 2C10.5 21.5 2.5 13.5 2.5 5.5a2 2 0 011.5-2z"/></svg>
+            <span id="contactPhoneText">Loading…</span>
+          </a>
+          <button id="copyPhoneBtn" type="button" class="hidden text-brand-muted hover:text-brand-gold transition-colors p-1" title="Copy phone number" aria-label="Copy phone number">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+          <a id="contactInstagram" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-9 h-9 rounded-full border border-brand-border items-center justify-center text-brand-gold hover:border-brand-gold hover:bg-brand-gold/10 transition-colors" title="Instagram">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+          </a>
+          <a id="contactWhatsapp" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-9 h-9 rounded-full border border-brand-border items-center justify-center text-brand-gold hover:border-brand-gold hover:bg-brand-gold/10 transition-colors" title="WhatsApp">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 12a8 8 0 10-14.6 4.6L4 21l4.5-1.4A8 8 0 0020 12z"/><path d="M8.7 8.7c-.2.6-.1 1.5.6 2.7.9 1.5 2.3 2.7 3.9 3.2.9.3 1.5.2 2-.2.4-.3.6-.7.6-1"/></svg>
+          </a>
+          <a id="contactFacebook" href="#" target="_blank" rel="noopener noreferrer" class="hidden w-9 h-9 rounded-full border border-brand-border items-center justify-center text-brand-gold hover:border-brand-gold hover:bg-brand-gold/10 transition-colors" title="Facebook">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 8.5h-2c-.8 0-1.5.7-1.5 1.5v2h3.3l-.5 3H11.5v7.5H9V15H7v-3h2v-2.3C9 7.4 10.6 5.8 13 5.8h2v2.7z"/></svg>
+          </a>
+        </div>
+      </div>
+
+      <div class="md:col-span-6 md:col-start-7 space-y-4">
+        <div id="contactFormMsg" class="hidden text-xs uppercase tracking-widest text-brand-gold"></div>
+        <form id="contactForm" class="space-y-3" novalidate>
+          <input type="text" id="cfName" required class="admin-input" placeholder="Your name" />
+          <input type="email" id="cfEmail" required class="admin-input" placeholder="Your email" />
+          <textarea id="cfMessage" required rows="3" class="admin-input font-sans" placeholder="Your message"></textarea>
+          <button type="submit" class="admin-btn text-xs uppercase tracking-widest">Send Message</button>
+          <p class="text-[10px] text-brand-muted">Opens your email app with this pre-filled, addressed to the contact email above.</p>
+        </form>
+      </div>
+    </div>
+    <div class="flex flex-col md:flex-row justify-between items-center py-8 text-[10px] uppercase tracking-widest text-brand-muted gap-4">
+      <span id="txt-footerCopyright">© 2026 Portfolio</span>
+      <span>All Rights Reserved</span>
+    </div>
+  </div>
+</footer>
+
+<!-- Fullscreen Lightbox Modal -->
+<div id="lightboxModal" class="modal-overlay flex-col p-4 md:p-8">
+  <button id="lightboxClose" class="absolute top-6 right-6 text-brand-muted hover:text-brand-light text-3xl z-10 w-12 h-12 flex items-center justify-center bg-black/50 rounded-full border border-brand-border transition-colors">×</button>
+  <span id="lightboxCounter" class="absolute top-8 left-1/2 -translate-x-1/2 text-[11px] uppercase tracking-[0.2em] text-brand-muted z-10"></span>
+  <button id="lightboxPrev" class="absolute left-3 md:left-6 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-light z-10 w-11 h-11 md:w-12 md:h-12 flex items-center justify-center bg-black/50 rounded-full border border-brand-border transition-colors" aria-label="Previous photo">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <button id="lightboxNext" class="absolute right-3 md:right-6 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-light z-10 w-11 h-11 md:w-12 md:h-12 flex items-center justify-center bg-black/50 rounded-full border border-brand-border transition-colors" aria-label="Next photo">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18l6-6-6-6"/></svg>
+  </button>
+  <div class="relative max-w-5xl max-h-[82vh] w-full h-full flex flex-col items-center justify-center">
+    <img id="lightboxImg" class="max-h-[75vh] max-w-full object-contain rounded-lg shadow-2xl" src="" alt="Lightbox view" />
+    <p id="lightboxCaption" class="mt-4 text-xs uppercase tracking-[0.2em] text-brand-muted text-center"></p>
+    <a id="lightboxInstagram" href="#" target="_blank" rel="noopener noreferrer" class="hidden mt-3 w-9 h-9 rounded-full border border-brand-border items-center justify-center text-brand-gold hover:border-brand-gold hover:bg-brand-gold/10 transition-colors">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+    </a>
+  </div>
+</div>
+
+<!-- Scroll to top -->
+<button id="scrollTopBtn" title="Back to top" aria-label="Back to top"
+  class="fixed bottom-6 left-6 z-40 w-11 h-11 rounded-full bg-brand-dark/90 border border-brand-border
+         text-brand-muted hover:text-brand-gold hover:border-brand-gold transition-all duration-300
+         flex items-center justify-center shadow-2xl backdrop-blur-md opacity-0 pointer-events-none translate-y-2">
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<!-- Tiny Admin button (bottom-right) -->
+<button id="adminBtn" title="Admin Panel"
+  class="fixed bottom-6 right-6 z-40 w-12 h-12 rounded-full bg-brand-dark/90 border border-brand-border
+         text-brand-muted hover:text-brand-gold hover:border-brand-gold transition-all duration-300
+         flex items-center justify-center text-xs shadow-2xl backdrop-blur-md">
+  ✎
+</button>
+
+<!-- Admin Overlay / Modal -->
+<div id="adminOverlay" class="modal-overlay">
+  <div id="adminPanel">
+    <div class="flex items-center justify-between mb-6 pb-4 border-b border-brand-border">
+      <div class="flex items-center gap-2">
+        <div class="w-2 h-2 rounded-full bg-brand-gold"></div>
+        <h3 class="text-xs uppercase tracking-[0.2em] font-semibold text-brand-light">Admin Management</h3>
+      </div>
+      <button id="adminClose" class="text-brand-muted hover:text-brand-light text-2xl">×</button>
+    </div>
+
+    <!-- Step 1: PIN -->
+    <div id="pinStep">
+      <p class="text-sm text-brand-muted mb-4">Enter your administrative PIN to access site configuration.</p>
+      <input id="pinInput" type="password" class="admin-input mb-4" placeholder="••••••••" autocomplete="off" />
+      <button id="pinSubmit" class="admin-btn w-full">Unlock Dashboard</button>
+      <p id="pinError" class="text-red-400 text-xs mt-3 hidden">Invalid PIN. Please try again.</p>
+    </div>
+
+    <!-- Step 2: Editor -->
+    <div id="editorStep" class="hidden space-y-6">
+      <p class="text-xs text-brand-muted">Modify site content, hero showcase, albums, contact details, and typography styles below.</p>
+
+      <!-- Hero -->
+      <div class="space-y-1.5">
+        <label class="text-[10px] uppercase tracking-widest text-brand-gold block">Hero Image URL</label>
+        <input id="editHero" type="url" class="admin-input" placeholder="https://..." />
+      </div>
+
+      <!-- Contact -->
+      <div class="space-y-3 pt-2">
+        <p class="text-[10px] uppercase tracking-widest text-brand-gold">Contact Information</p>
+        <input id="editEmail" type="email" class="admin-input" placeholder="Email address" />
+        <input id="editPhone" type="text" class="admin-input" placeholder="Phone number" />
+        <input id="editInstagram" type="url" class="admin-input" placeholder="Instagram URL" />
+        <input id="editWhatsapp" type="text" class="admin-input" placeholder="WhatsApp number (e.g. 919876543210) or full wa.me link" />
+        <input id="editFacebook" type="url" class="admin-input" placeholder="Facebook page URL" />
+        <p class="text-[10px] text-brand-muted">Leave any field blank to hide that icon on the site. Any contact method left empty simply won't show.</p>
+      </div>
+
+      <!-- Testimonials -->
+      <div class="space-y-3 pt-2">
+        <div class="flex items-center justify-between">
+          <p class="text-[10px] uppercase tracking-widest text-brand-gold">Testimonials</p>
+          <button id="addTestimonial" class="admin-btn-secondary text-xs">+ Add Testimonial</button>
+        </div>
+        <p class="text-[10px] text-brand-muted">Not tied to a specific photo. Instagram link can point to a post or your profile/home page.</p>
+        <div id="editTestimonials" class="space-y-4 max-h-64 overflow-y-auto pr-2"></div>
+      </div>
+
+      <!-- Categories / Albums -->
+      <div class="space-y-3 pt-2">
+        <div class="flex items-center justify-between">
+          <p class="text-[10px] uppercase tracking-widest text-brand-gold">Albums &amp; Categories</p>
+          <button id="addCategory" class="admin-btn-secondary text-xs">+ Add Album</button>
+        </div>
+        <div id="editCategories" class="space-y-4 max-h-64 overflow-y-auto pr-2"></div>
+      </div>
+
+      <!-- Text & Layout -->
+      <div class="space-y-3 pt-2">
+        <p class="text-[10px] uppercase tracking-widest text-brand-gold">Typography &amp; Layout Styles</p>
+        <p class="text-[10px] text-brand-muted">Use *text* for bold, _text_ for italic, new line for line break.</p>
+        <div id="editStyles" class="space-y-3 max-h-64 overflow-y-auto pr-2"></div>
+      </div>
+
+      <!-- Analytics -->
+      <div class="space-y-3 pt-2">
+        <p class="text-[10px] uppercase tracking-widest text-brand-gold">Analytics (this device only)</p>
+        <p class="text-[10px] text-brand-muted">This site has no visitor-tracking backend, so these counts only reflect page loads on this specific browser/device — not real site-wide traffic. For real cross-visitor analytics, a small counter endpoint would need to be added to the Cloudflare Worker (see handshake notes).</p>
+        <div id="analyticsSummary" class="grid grid-cols-2 gap-3 text-xs"></div>
+        <button id="resetAnalyticsBtn" type="button" class="admin-btn-secondary text-xs">Reset local counters</button>
+      </div>
+
+      <div class="flex gap-3 pt-4 border-t border-brand-border">
+        <button id="saveBtn" class="admin-btn flex-1">Save &amp; Publish</button>
+        <button id="cancelBtn" class="admin-btn-secondary">Cancel</button>
+      </div>
+      <p id="saveMsg" class="text-xs mt-2 text-center hidden"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ============================================================
+  // CONFIG & STATE
+  // ============================================================
+  const WORKER_URL = 'https://kaad-portraits.sk6594246.workers.dev';
+
+  const STYLE_KEYS = {
+    navTitle:          { label: 'Site Title (Nav Bar)',           defaultFontSize: '0.75rem', defaultAlign: 'left',  defaultContent: 'KAAD PORTRAITS' },
+    heroTitle:        { label: 'Hero Title (PORTFOLIO)',         defaultFontSize: '0.75rem', defaultAlign: 'left',  defaultContent: 'PORTFOLIO' },
+    heroSubtitle:      { label: 'Hero Subtitle (VISUAL WORK)',    defaultFontSize: '0.75rem', defaultAlign: 'right', defaultContent: 'VISUAL WORK' },
+    galleryHeading:    { label: 'Gallery Heading (CURATED WORK)', defaultFontSize: '0.75rem', defaultAlign: 'left',  defaultContent: 'CURATED WORK' },
+    aboutHeading:      { label: 'About Heading',                  defaultFontSize: '2.5rem',  defaultAlign: 'left',  defaultContent: 'the quiet *search* for\nquiet *light*' },
+    aboutText:         { label: 'About Paragraph',                 defaultFontSize: '0.875rem',defaultAlign: 'left', defaultContent: 'A visual storyteller working across editorial, landscape, and portrait work — frames that balance mood with precision.' },
+    footerHeading:     { label: 'Footer Heading (PORTFOLIO)',     defaultFontSize: '4rem',    defaultAlign: 'left',  defaultContent: 'PORTFOLIO' },
+    contactLabel:      { label: 'Contact Label',                   defaultFontSize: '0.625rem',defaultAlign: 'left', defaultContent: 'Contact' },
+    footerCopyright:   { label: 'Footer Copyright',                 defaultFontSize: '0.625rem',defaultAlign: 'left',defaultContent: '© 2026 Portfolio' }
+  };
+
+  let siteData = {
+    hero: '',
+    contact: { email: '', phone: '', instagram: '', whatsapp: '', facebook: '' },
+    categories: [],
+    testimonials: [],
+    styles: {}
+  };
+
+  function renderMiniMarkdown(raw) {
+    let text = escapeHtml(raw == null ? '' : String(raw));
+    text = text.replace(/\*(.+?)\*/g, '<strong>$1</strong>');
+    text = text.replace(/_(.+?)_/g, '<em>$1</em>');
+    text = text.replace(/\n/g, '<br>');
+    return text;
+  }
+
+  function applyStyles() {
+    Object.keys(STYLE_KEYS).forEach(key => {
+      const el = document.getElementById('txt-' + key);
+      if (!el) return;
+      const cfg = STYLE_KEYS[key];
+      const saved = (siteData.styles && siteData.styles[key]) || {};
+      el.style.fontSize = saved.fontSize || cfg.defaultFontSize;
+      el.style.textAlign = saved.textAlign || cfg.defaultAlign;
+      const content = (saved.content != null && saved.content !== '') ? saved.content : cfg.defaultContent;
+      el.innerHTML = renderMiniMarkdown(content);
+    });
+  }
+
+  // ============================================================
+  // LOAD SITE DATA
+  // ============================================================
+  async function loadSite() {
+    try {
+      const res = await fetch(WORKER_URL);
+      if (!res.ok) throw new Error('Worker returned ' + res.status);
+      const data = await res.json();
+
+      siteData = data;
+      if (!siteData.styles) siteData.styles = {};
+      if (!siteData.testimonials) siteData.testimonials = [];
+      if (!siteData.contact) siteData.contact = { email: '', phone: '', instagram: '', whatsapp: '', facebook: '' };
+      applyStyles();
+
+      if (data.hero) { document.getElementById('heroImg').src = data.hero; document.getElementById('ogImageMeta').setAttribute('content', data.hero); }
+
+      renderContactLinks();
+
+      renderCategoryNav();
+      if (data.categories && data.categories.length) {
+        renderGallery(data.categories.length > 1 ? ALL_CATEGORY : data.categories[0].name);
+      }
+      renderTestimonials();
+    } catch (err) {
+      console.error('Failed to load site data:', err);
+      document.getElementById('galleryEmpty').classList.remove('hidden');
+      document.getElementById('galleryEmpty').textContent = 'Could not load content. Check the Worker URL or network connection.';
+      document.getElementById('testimonialsSkeleton').classList.add('hidden');
+    }
+  }
+
+  function renderTestimonials() {
+    const grid = document.getElementById('testimonialsGrid');
+    const empty = document.getElementById('testimonialsEmpty');
+    const skeleton = document.getElementById('testimonialsSkeleton');
+    skeleton.classList.add('hidden');
+    grid.innerHTML = '';
+    const items = siteData.testimonials || [];
+
+    if (!items.length) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    items.forEach((t, index) => {
+      const card = document.createElement('div');
+      card.className = 'border border-brand-border rounded-xl p-6 bg-brand-surface/40 opacity-0 animate-fade-in flex flex-col justify-between';
+      card.style.animationDelay = (index * 0.08) + 's';
+
+      const igLink = t.instagram
+        ? `<a href="${escapeHtml(t.instagram)}" target="_blank" rel="noopener noreferrer" class="w-9 h-9 rounded-full border border-brand-border inline-flex items-center justify-center text-brand-gold hover:border-brand-gold hover:bg-brand-gold/10 transition-colors">
+             <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.2" cy="6.8" r="1.1" fill="currentColor" stroke="none"/></svg>
+           </a>`
+        : '';
+
+      const initials = (t.name || '?').trim().split(/\s+/).slice(0, 2).map(w => w[0]).join('').toUpperCase();
+      const avatarHtml = t.avatar
+        ? `<img src="${escapeHtml(t.avatar)}" alt="${escapeHtml(t.name || '')}" class="w-10 h-10 rounded-full object-cover border border-brand-border shrink-0" />`
+        : `<div class="w-10 h-10 rounded-full border border-brand-border bg-brand-dark flex items-center justify-center text-xs text-brand-gold font-medium shrink-0">${escapeHtml(initials)}</div>`;
+
+      card.innerHTML = `
+        <p class="text-sm leading-relaxed text-brand-light/90">"${escapeHtml(t.quote || '')}"</p>
+        <div class="mt-4 flex items-center gap-3">
+          ${avatarHtml}
+          <p class="text-xs uppercase tracking-widest text-brand-muted flex-1">${escapeHtml(t.name || '')}</p>
+          ${igLink}
+        </div>`;
+      grid.appendChild(card);
+    });
+  }
+
+  function toDigitsOnly(str) {
+    return (str || '').replace(/[^\d]/g, '');
+  }
+
+  function toWhatsappUrl(raw) {
+    if (!raw) return '';
+    const trimmed = raw.trim();
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    const digits = toDigitsOnly(trimmed);
+    return digits ? 'https://wa.me/' + digits : '';
+  }
+
+  function renderContactLinks() {
+    const c = siteData.contact || {};
+
+    const emailEl = document.getElementById('contactEmail');
+    const emailText = document.getElementById('contactEmailText');
+    emailText.textContent = c.email || '';
+    emailEl.href = c.email ? 'mailto:' + c.email : '#';
+    emailEl.style.display = c.email ? '' : 'none';
+    document.getElementById('copyEmailBtn').classList.toggle('hidden', !c.email);
+
+    const phoneEl = document.getElementById('contactPhone');
+    const phoneText = document.getElementById('contactPhoneText');
+    phoneText.textContent = c.phone || '';
+    phoneEl.href = c.phone ? 'tel:' + c.phone : '#';
+    phoneEl.style.display = c.phone ? '' : 'none';
+    document.getElementById('copyPhoneBtn').classList.toggle('hidden', !c.phone);
+
+    const toggle = (id, href) => {
+      const el = document.getElementById(id);
+      if (href) {
+        el.href = href;
+        el.classList.remove('hidden');
+        el.classList.add('flex');
+      } else {
+        el.classList.add('hidden');
+        el.classList.remove('flex');
+      }
+    };
+
+    toggle('contactInstagram', c.instagram || '');
+    toggle('contactWhatsapp', toWhatsappUrl(c.whatsapp || ''));
+    toggle('contactFacebook', c.facebook || '');
+  }
+
+  const ALL_CATEGORY = '__ALL__';
+
+  function renderCategoryNav() {
+    const nav = document.getElementById('catNav');
+    nav.innerHTML = '';
+    const cats = siteData.categories || [];
+    const totalPhotos = cats.reduce((sum, c) => sum + ((c.photos && c.photos.length) || 0), 0);
+
+    const makeBtn = (name, label, count, isActive) => {
+      const btn = document.createElement('button');
+      btn.className = 'cat-btn pb-1 text-xs uppercase tracking-[0.2em] font-medium border-b transition-all duration-300 flex items-center gap-1.5' + (isActive ? ' active' : '');
+      btn.innerHTML = `<span>${escapeHtml(label)}</span><span class="text-[10px] text-brand-muted">(${count})</span>`;
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        renderGallery(name);
+      });
+      return btn;
+    };
+
+    if (cats.length > 1) {
+      nav.appendChild(makeBtn(ALL_CATEGORY, 'All', totalPhotos, true));
+    }
+    cats.forEach((cat, i) => {
+      const count = (cat.photos && cat.photos.length) || 0;
+      const isActive = cats.length <= 1 && i === 0;
+      nav.appendChild(makeBtn(cat.name, cat.name, count, isActive));
+    });
+  }
+
+  function renderGallery(categoryName) {
+    const grid = document.getElementById('galleryGrid');
+    const empty = document.getElementById('galleryEmpty');
+    grid.innerHTML = '';
+    const cats = siteData.categories || [];
+    const photos = categoryName === ALL_CATEGORY
+      ? cats.flatMap(c => c.photos || [])
+      : ((cats.find(c => c.name === categoryName) || {}).photos || []);
+
+    if (categoryName !== ALL_CATEGORY) trackAnalyticsEvent('album:' + categoryName);
+
+    if (!photos.length) {
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    photos.forEach((photo, index) => {
+      const wrap = document.createElement('div');
+      wrap.className = 'group cursor-pointer opacity-0 animate-fade-in';
+      wrap.style.animationDelay = (index * 0.08) + 's';
+      
+      wrap.innerHTML = `
+        <div class="aspect-portrait overflow-hidden rounded-xl bg-zinc-900 border border-brand-border/40 shadow-2xl relative">
+          <div class="absolute inset-0 skeleton"></div>
+          <img class="gallery-img w-full h-full object-cover relative z-10" src="${photo.url}" alt="${photo.name || 'Portrait'}" loading="lazy" onload="this.classList.add('loaded'); this.previousElementSibling.style.display='none'" />
+          <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 flex items-end p-6">
+            <span class="text-xs uppercase tracking-[0.2em] text-brand-light font-medium">${photo.name || 'Untitled'}</span>
+          </div>
+        </div>`;
+      
+      // Open Lightbox on click
+      wrap.addEventListener('click', () => openLightbox(photos, index));
+      grid.appendChild(wrap);
+    });
+  }
+
+  // ============================================================
+  // LIGHTBOX MODAL
+  // ============================================================
+  const lightboxModal = document.getElementById('lightboxModal');
+  const lightboxImg = document.getElementById('lightboxImg');
+  const lightboxCaption = document.getElementById('lightboxCaption');
+  const lightboxClose = document.getElementById('lightboxClose');
+  const lightboxInstagram = document.getElementById('lightboxInstagram');
+  const lightboxPrev = document.getElementById('lightboxPrev');
+  const lightboxNext = document.getElementById('lightboxNext');
+  const lightboxCounter = document.getElementById('lightboxCounter');
+
+  let lightboxPhotos = [];
+  let lightboxIndex = 0;
+
+  function showLightboxPhoto(index) {
+    if (!lightboxPhotos.length) return;
+    lightboxIndex = (index + lightboxPhotos.length) % lightboxPhotos.length;
+    const photo = lightboxPhotos[lightboxIndex];
+
+    lightboxImg.src = photo.url;
+    lightboxCaption.textContent = photo.name || '';
+
+    if (photo.instagram) {
+      lightboxInstagram.href = photo.instagram;
+      lightboxInstagram.classList.remove('hidden');
+      lightboxInstagram.classList.add('flex');
+    } else {
+      lightboxInstagram.classList.add('hidden');
+      lightboxInstagram.classList.remove('flex');
+    }
+
+    const multi = lightboxPhotos.length > 1;
+    lightboxPrev.classList.toggle('hidden', !multi);
+    lightboxNext.classList.toggle('hidden', !multi);
+    lightboxCounter.textContent = multi ? (lightboxIndex + 1) + ' / ' + lightboxPhotos.length : '';
+  }
+
+  function openLightbox(photos, index) {
+    lightboxPhotos = photos || [];
+    showLightboxPhoto(index || 0);
+    lightboxModal.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeLightbox() {
+    lightboxModal.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  lightboxPrev.addEventListener('click', (e) => { e.stopPropagation(); showLightboxPhoto(lightboxIndex - 1); });
+  lightboxNext.addEventListener('click', (e) => { e.stopPropagation(); showLightboxPhoto(lightboxIndex + 1); });
+
+  lightboxClose.addEventListener('click', closeLightbox);
+  lightboxModal.addEventListener('click', (e) => {
+    if (e.target === lightboxModal) closeLightbox();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (!lightboxModal.classList.contains('open')) return;
+    if (e.key === 'ArrowLeft') showLightboxPhoto(lightboxIndex - 1);
+    if (e.key === 'ArrowRight') showLightboxPhoto(lightboxIndex + 1);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeLightbox();
+      closeAdmin();
+      closeMobileMenu();
+    }
+  });
+
+  // ============================================================
+  // MOBILE MENU DRAWER
+  // ============================================================
+  const mobileMenu = document.getElementById('mobileMenu');
+  const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+  const mobileMenuClose = document.getElementById('mobileMenuClose');
+
+  function openMobileMenu() {
+    mobileMenu.classList.remove('opacity-0', 'pointer-events-none');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeMobileMenu() {
+    mobileMenu.classList.add('opacity-0', 'pointer-events-none');
+    document.body.style.overflow = '';
+  }
+
+  mobileMenuBtn.addEventListener('click', openMobileMenu);
+
+  function copyToClipboard(text, btn) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const original = btn.innerHTML;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>';
+      btn.classList.add('text-brand-gold');
+      setTimeout(() => {
+        btn.innerHTML = original;
+        btn.classList.remove('text-brand-gold');
+      }, 1500);
+    }).catch(() => {});
+  }
+
+  document.getElementById('copyEmailBtn').addEventListener('click', function () {
+    copyToClipboard((siteData.contact && siteData.contact.email) || '', this);
+  });
+  document.getElementById('copyPhoneBtn').addEventListener('click', function () {
+    copyToClipboard((siteData.contact && siteData.contact.phone) || '', this);
+  });
+
+  // Contact form (mailto — no backend required)
+  const contactForm = document.getElementById('contactForm');
+  const contactFormMsg = document.getElementById('contactFormMsg');
+  contactForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('cfName').value.trim();
+    const fromEmail = document.getElementById('cfEmail').value.trim();
+    const message = document.getElementById('cfMessage').value.trim();
+    const toEmail = (siteData.contact && siteData.contact.email) || '';
+
+    if (!name || !fromEmail || !message) return;
+
+    if (!toEmail) {
+      contactFormMsg.textContent = 'Contact email not set up yet — please reach out via another method below.';
+      contactFormMsg.classList.remove('hidden');
+      return;
+    }
+
+    const subject = 'Website inquiry from ' + name;
+    const body = message + '\n\n— ' + name + ' (' + fromEmail + ')';
+    window.location.href = 'mailto:' + encodeURIComponent(toEmail) +
+      '?subject=' + encodeURIComponent(subject) +
+      '&body=' + encodeURIComponent(body);
+
+    contactFormMsg.textContent = 'Opening your email app…';
+    contactFormMsg.classList.remove('hidden');
+    contactForm.reset();
+  });
+
+  // Theme toggle (light/dark)
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const themeIconMoon = document.getElementById('themeIconMoon');
+  const themeIconSun = document.getElementById('themeIconSun');
+
+  function syncThemeIcon() {
+    const isLight = document.documentElement.classList.contains('theme-light');
+    themeIconMoon.classList.toggle('hidden', isLight);
+    themeIconSun.classList.toggle('hidden', !isLight);
+  }
+  syncThemeIcon();
+
+  themeToggleBtn.addEventListener('click', () => {
+    const isLight = document.documentElement.classList.toggle('theme-light');
+    try { localStorage.setItem('kaad-theme', isLight ? 'light' : 'dark'); } catch (e) {}
+    syncThemeIcon();
+  });
+
+  // Scroll to top button
+  const scrollTopBtn = document.getElementById('scrollTopBtn');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 500) {
+      scrollTopBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+    } else {
+      scrollTopBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+    }
+  }, { passive: true });
+  scrollTopBtn.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // Active nav-link highlighting on scroll
+  const scrollSections = ['home', 'gallerySection', 'about', 'contact']
+    .map(id => document.getElementById(id))
+    .filter(Boolean);
+  const sectionToNavKey = { home: 'home', gallerySection: 'gallery', about: 'about', contact: 'contact' };
+  const navLinks = document.querySelectorAll('.scroll-nav-link');
+
+  function setActiveNav(key) {
+    navLinks.forEach(link => {
+      const isActive = link.dataset.section === key;
+      link.classList.toggle('text-brand-light', isActive);
+      link.classList.toggle('text-brand-muted', !isActive);
+    });
+  }
+
+  if (scrollSections.length && 'IntersectionObserver' in window) {
+    const spyObserver = new IntersectionObserver((entries) => {
+      let best = null;
+      entries.forEach(entry => {
+        if (entry.isIntersecting && (!best || entry.intersectionRatio > best.intersectionRatio)) {
+          best = entry;
+        }
+      });
+      if (best) setActiveNav(sectionToNavKey[best.target.id]);
+    }, { rootMargin: '-40% 0px -50% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] });
+    scrollSections.forEach(sec => spyObserver.observe(sec));
+  }
+  mobileMenuClose.addEventListener('click', closeMobileMenu);
+  document.querySelectorAll('.mobile-nav-link').forEach(link => {
+    link.addEventListener('click', closeMobileMenu);
+  });
+
+  // ============================================================
+  // ADMIN PANEL
+  // ============================================================
+  const overlay   = document.getElementById('adminOverlay');
+  const pinStep   = document.getElementById('pinStep');
+  const editorStep= document.getElementById('editorStep');
+  const pinInput  = document.getElementById('pinInput');
+  const pinError  = document.getElementById('pinError');
+  const saveMsg   = document.getElementById('saveMsg');
+
+  document.getElementById('adminBtn').addEventListener('click', () => {
+    pinStep.classList.remove('hidden');
+    editorStep.classList.add('hidden');
+    pinInput.value = '';
+    pinError.classList.add('hidden');
+    saveMsg.classList.add('hidden');
+    overlay.classList.add('open');
+    pinInput.focus();
+  });
+
+  function closeAdmin() {
+    overlay.classList.remove('open');
+  }
+  document.getElementById('adminClose').addEventListener('click', closeAdmin);
+  document.getElementById('cancelBtn').addEventListener('click', closeAdmin);
+
+  document.getElementById('pinSubmit').addEventListener('click', tryPin);
+  pinInput.addEventListener('keydown', e => { if (e.key === 'Enter') tryPin(); });
+
+  async function tryPin() {
+    const pin = pinInput.value.trim();
+    if (!pin) return;
+
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin, data: siteData })
+      });
+
+      if (res.status === 401) {
+        pinError.classList.remove('hidden');
+        return;
+      }
+      if (!res.ok) {
+        pinError.textContent = 'Server error. Try again.';
+        pinError.classList.remove('hidden');
+        return;
+      }
+
+      pinError.classList.add('hidden');
+      pinStep.classList.add('hidden');
+      editorStep.classList.remove('hidden');
+      fillEditor();
+    } catch (err) {
+      pinError.textContent = 'Network error connecting to Worker';
+      pinError.classList.remove('hidden');
+    }
+  }
+
+  function fillEditor() {
+    document.getElementById('editHero').value = siteData.hero || '';
+    document.getElementById('editEmail').value = (siteData.contact && siteData.contact.email) || '';
+    document.getElementById('editPhone').value = (siteData.contact && siteData.contact.phone) || '';
+    document.getElementById('editInstagram').value = (siteData.contact && siteData.contact.instagram) || '';
+    document.getElementById('editWhatsapp').value = (siteData.contact && siteData.contact.whatsapp) || '';
+    document.getElementById('editFacebook').value = (siteData.contact && siteData.contact.facebook) || '';
+
+    const testiContainer = document.getElementById('editTestimonials');
+    testiContainer.innerHTML = '';
+    (siteData.testimonials || []).forEach(t => {
+      testiContainer.appendChild(makeTestimonialBlock(t));
+    });
+
+    const container = document.getElementById('editCategories');
+    container.innerHTML = '';
+    (siteData.categories || []).forEach((cat, catIndex) => {
+      container.appendChild(makeCategoryBlock(cat, catIndex));
+    });
+
+    fillStylesEditor();
+    renderAnalyticsSummary();
+  }
+
+  function fillStylesEditor() {
+    const container = document.getElementById('editStyles');
+    container.innerHTML = '';
+    const savedStyles = siteData.styles || {};
+
+    Object.keys(STYLE_KEYS).forEach(key => {
+      const cfg = STYLE_KEYS[key];
+      const saved = savedStyles[key] || {};
+      const fontSize = saved.fontSize || cfg.defaultFontSize;
+      const align = saved.textAlign || cfg.defaultAlign;
+      const content = (saved.content != null && saved.content !== '') ? saved.content : cfg.defaultContent;
+
+      const row = document.createElement('div');
+      row.className = 'border border-brand-border rounded-lg p-3 space-y-2 bg-brand-dark/50';
+      row.dataset.styleKey = key;
+      row.innerHTML = `
+        <span class="text-xs text-brand-gold block font-medium">${escapeHtml(cfg.label)}</span>
+        <textarea class="admin-input style-content font-sans" rows="2">${escapeHtml(content)}</textarea>
+        <div class="flex gap-2 items-center">
+          <input type="text" class="admin-input style-fontsize flex-1" value="${escapeHtml(fontSize)}" placeholder="Font size (e.g. 1rem)" />
+          <select class="admin-input style-align" style="max-width:120px">
+            <option value="left"${align === 'left' ? ' selected' : ''}>Left</option>
+            <option value="center"${align === 'center' ? ' selected' : ''}>Center</option>
+            <option value="right"${align === 'right' ? ' selected' : ''}>Right</option>
+          </select>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  // ============================================================
+  // LOCAL ANALYTICS (this-device-only; no visitor tracking backend)
+  // ============================================================
+  const ANALYTICS_KEY = 'kaad-analytics';
+
+  function loadAnalytics() {
+    try {
+      return JSON.parse(localStorage.getItem(ANALYTICS_KEY)) || { pageViews: 0, events: {} };
+    } catch (e) {
+      return { pageViews: 0, events: {} };
+    }
+  }
+
+  function trackAnalyticsEvent(key) {
+    try {
+      const data = loadAnalytics();
+      data.events[key] = (data.events[key] || 0) + 1;
+      localStorage.setItem(ANALYTICS_KEY, JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function trackPageView() {
+    try {
+      const data = loadAnalytics();
+      data.pageViews = (data.pageViews || 0) + 1;
+      localStorage.setItem(ANALYTICS_KEY, JSON.stringify(data));
+    } catch (e) {}
+  }
+
+  function renderAnalyticsSummary() {
+    const el = document.getElementById('analyticsSummary');
+    if (!el) return;
+    const data = loadAnalytics();
+    const albumEntries = Object.entries(data.events || {})
+      .filter(([k]) => k.startsWith('album:'))
+      .map(([k, v]) => [k.replace('album:', ''), v])
+      .sort((a, b) => b[1] - a[1]);
+
+    let html = `<div class="border border-brand-border rounded-lg p-3"><p class="text-brand-muted">Page views (device)</p><p class="text-lg font-medium text-brand-gold">${data.pageViews || 0}</p></div>`;
+    if (albumEntries.length) {
+      html += `<div class="border border-brand-border rounded-lg p-3"><p class="text-brand-muted">Top album (device)</p><p class="text-sm font-medium text-brand-gold truncate">${escapeHtml(albumEntries[0][0])} (${albumEntries[0][1]})</p></div>`;
+    } else {
+      html += `<div class="border border-brand-border rounded-lg p-3 flex items-center justify-center"><p class="text-brand-muted">No album views yet</p></div>`;
+    }
+    el.innerHTML = html;
+  }
+
+  document.getElementById('resetAnalyticsBtn').addEventListener('click', () => {
+    try { localStorage.removeItem(ANALYTICS_KEY); } catch (e) {}
+    renderAnalyticsSummary();
+  });
+
+  trackPageView();
+
+  function moveElement(el, direction) {
+    if (direction === 'up' && el.previousElementSibling) {
+      el.parentNode.insertBefore(el, el.previousElementSibling);
+    } else if (direction === 'down' && el.nextElementSibling) {
+      el.parentNode.insertBefore(el.nextElementSibling, el);
+    }
+  }
+
+  function makeMoveButtons(getTarget) {
+    const wrap = document.createElement('div');
+    wrap.className = 'flex flex-col gap-0.5 shrink-0';
+    wrap.innerHTML = `
+      <button type="button" class="admin-move-btn move-up" title="Move up" aria-label="Move up">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 15l-6-6-6 6"/></svg>
+      </button>
+      <button type="button" class="admin-move-btn move-down" title="Move down" aria-label="Move down">
+        <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+    `;
+    wrap.querySelector('.move-up').addEventListener('click', () => moveElement(getTarget(), 'up'));
+    wrap.querySelector('.move-down').addEventListener('click', () => moveElement(getTarget(), 'down'));
+    return wrap;
+  }
+
+  function makeCategoryBlock(cat, catIndex) {
+    const block = document.createElement('div');
+    block.className = 'border border-brand-border rounded-lg p-3 space-y-3 bg-brand-dark/50';
+    block.dataset.catIndex = catIndex;
+
+    block.innerHTML = `
+      <div class="flex gap-2 items-center">
+        <input type="text" class="admin-input cat-name flex-1 font-medium" value="${escapeHtml(cat.name || '')}" placeholder="Album name" />
+        <button type="button" class="admin-btn-secondary text-xs px-3 remove-cat">Remove</button>
+      </div>
+      <div class="photos space-y-2"></div>
+      <button type="button" class="admin-btn-secondary text-xs w-full py-1.5 add-photo">+ Add Photo URL</button>
+    `;
+
+    const moveBtns = makeMoveButtons(() => block);
+    block.querySelector('.flex.gap-2.items-center').prepend(moveBtns);
+
+    const photosDiv = block.querySelector('.photos');
+    (cat.photos || []).forEach(photo => {
+      photosDiv.appendChild(makePhotoRow(photo));
+    });
+
+    block.querySelector('.remove-cat').addEventListener('click', () => block.remove());
+    block.querySelector('.add-photo').addEventListener('click', () => {
+      photosDiv.appendChild(makePhotoRow({ url: '', name: '', instagram: '' }));
+    });
+
+    return block;
+  }
+
+  function makePhotoRow(photo) {
+    const row = document.createElement('div');
+    row.className = 'border border-brand-border/60 rounded-lg p-2 space-y-1.5';
+    row.innerHTML = `
+      <div class="flex gap-2 items-center">
+        <input type="url" class="admin-input photo-url flex-1" value="${escapeHtml(photo.url || '')}" placeholder="Photo Source URL" />
+        <input type="text" class="admin-input photo-name" style="max-width:130px" value="${escapeHtml(photo.name || '')}" placeholder="Photo caption" />
+        <button type="button" class="admin-btn-secondary text-xs px-2.5 py-2 remove-photo">×</button>
+      </div>
+      <input type="url" class="admin-input photo-instagram" value="${escapeHtml(photo.instagram || '')}" placeholder="Original Instagram post URL (optional)" />
+    `;
+    const moveBtns = makeMoveButtons(() => row);
+    row.querySelector('.flex.gap-2.items-center').prepend(moveBtns);
+
+    row.querySelector('.remove-photo').addEventListener('click', () => row.remove());
+    return row;
+  }
+
+  document.getElementById('addCategory').addEventListener('click', () => {
+    const container = document.getElementById('editCategories');
+    container.appendChild(makeCategoryBlock({ name: 'New Album', photos: [] }, container.children.length));
+  });
+
+  document.getElementById('addTestimonial').addEventListener('click', () => {
+    const container = document.getElementById('editTestimonials');
+    container.appendChild(makeTestimonialBlock({ name: '', quote: '', instagram: '', avatar: '' }));
+  });
+
+  function makeTestimonialBlock(t) {
+    const block = document.createElement('div');
+    block.className = 'border border-brand-border rounded-lg p-3 space-y-2 bg-brand-dark/50';
+    block.innerHTML = `
+      <div class="flex gap-2 items-center">
+        <input type="text" class="admin-input testi-name flex-1" value="${escapeHtml(t.name || '')}" placeholder="Name" />
+        <button type="button" class="admin-btn-secondary text-xs px-3 remove-testimonial">Remove</button>
+      </div>
+      <textarea class="admin-input testi-quote font-sans" rows="2" placeholder="Testimonial / comment">${escapeHtml(t.quote || '')}</textarea>
+      <input type="url" class="admin-input testi-instagram" value="${escapeHtml(t.instagram || '')}" placeholder="Instagram link (post or profile/home page, optional)" />
+      <input type="url" class="admin-input testi-avatar" value="${escapeHtml(t.avatar || '')}" placeholder="Photo/avatar URL (optional)" />
+    `;
+    const moveBtns = makeMoveButtons(() => block);
+    block.querySelector('.flex.gap-2.items-center').prepend(moveBtns);
+
+    block.querySelector('.remove-testimonial').addEventListener('click', () => block.remove());
+    return block;
+  }
+
+  document.getElementById('saveBtn').addEventListener('click', async () => {
+    const pin = pinInput.value.trim();
+
+    const newData = {
+      hero: document.getElementById('editHero').value.trim(),
+      contact: {
+        email: document.getElementById('editEmail').value.trim(),
+        phone: document.getElementById('editPhone').value.trim(),
+        instagram: document.getElementById('editInstagram').value.trim(),
+        whatsapp: document.getElementById('editWhatsapp').value.trim(),
+        facebook: document.getElementById('editFacebook').value.trim()
+      },
+      categories: [],
+      testimonials: [],
+      styles: {}
+    };
+
+    document.querySelectorAll('#editTestimonials > div').forEach(block => {
+      const name = block.querySelector('.testi-name').value.trim();
+      const quote = block.querySelector('.testi-quote').value.trim();
+      const instagram = block.querySelector('.testi-instagram').value.trim();
+      const avatar = block.querySelector('.testi-avatar').value.trim();
+      if (!name && !quote) return;
+      newData.testimonials.push({ name, quote, instagram, avatar });
+    });
+
+    document.querySelectorAll('#editStyles > div').forEach(row => {
+      const key = row.dataset.styleKey;
+      const content = row.querySelector('.style-content').value;
+      const fontSize = row.querySelector('.style-fontsize').value.trim();
+      const textAlign = row.querySelector('.style-align').value;
+      newData.styles[key] = {
+        content,
+        fontSize: fontSize || STYLE_KEYS[key].defaultFontSize,
+        textAlign
+      };
+    });
+
+    document.querySelectorAll('#editCategories > div').forEach(block => {
+      const name = block.querySelector('.cat-name').value.trim();
+      if (!name) return;
+      const photos = [];
+      block.querySelectorAll('.photos > div').forEach(row => {
+        const url = row.querySelector('.photo-url').value.trim();
+        const pname = row.querySelector('.photo-name').value.trim();
+        const pinsta = row.querySelector('.photo-instagram').value.trim();
+        if (url) photos.push({ url, name: pname, instagram: pinsta });
+      });
+      newData.categories.push({ name, photos });
+    });
+
+    saveMsg.classList.add('hidden');
+    try {
+      const res = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin, data: newData })
+      });
+
+      const result = await res.json();
+      if (!res.ok) {
+        saveMsg.textContent = result.error || 'Save failed';
+        saveMsg.classList.remove('hidden');
+        saveMsg.style.color = '#f87171';
+        return;
+      }
+
+      siteData = newData;
+      applyStyles();
+      if (siteData.hero) { document.getElementById('heroImg').src = siteData.hero; document.getElementById('ogImageMeta').setAttribute('content', siteData.hero); }
+
+      renderContactLinks();
+
+      renderCategoryNav();
+      if (siteData.categories.length) renderGallery(siteData.categories.length > 1 ? ALL_CATEGORY : siteData.categories[0].name);
+      renderTestimonials();
+
+      saveMsg.textContent = 'Changes saved & published successfully!';
+      saveMsg.style.color = '#4ade80';
+      saveMsg.classList.remove('hidden');
+
+      setTimeout(closeAdmin, 1200);
+    } catch (err) {
+      saveMsg.textContent = 'Network error saving changes';
+      saveMsg.style.color = '#f87171';
+      saveMsg.classList.add('hidden');
+    }
+  });
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // Initialize
+  loadSite();
+</script>
+</body>
+</html>
